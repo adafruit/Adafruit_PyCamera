@@ -7,14 +7,149 @@ Adafruit_PyCamera::Adafruit_PyCamera(void)
 
 
 bool Adafruit_PyCamera::begin(void) {
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  pixel.setPin(PIN_NEOPIXEL);
+  pixel.updateLength(1);
+  pixel.begin();
+  pixel.setBrightness(50);
+  setNeopixel(0x0);
+ 
+
+  if (! initDisplay()) return false;
+  if (! initCamera()) return false;
+  return true;
+}
+
+void Adafruit_PyCamera::setNeopixel(uint32_t c) {
+  pixel.fill(c);
+  pixel.show(); // Initialize all pixels to 'off'
+}
+
+/**************************************************************************/
+/*!
+    @brief   Input a value 0 to 255 to get a color value. The colours are a
+   transition r - g - b - back to r.
+    @param  WheelPos The position in the wheel, from 0 to 255
+    @returns  The 0xRRGGBB color
+*/
+/**************************************************************************/
+uint32_t Adafruit_PyCamera::Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if (WheelPos < 85) {
+    return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if (WheelPos < 170) {
+    WheelPos -= 85;
+    return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+
+bool Adafruit_PyCamera::initSeesaw(void) {
+
+  return true;
+}
+
+bool Adafruit_PyCamera::initDisplay(void) {
+  Serial.print("Init display....");
   pinMode(TFT_BACKLIGHT, OUTPUT);
   digitalWrite(TFT_BACKLIGHT, LOW); // Backlight off
   init(240, 240);   // Initialize ST7789 screen
   setRotation(1);
-  fillScreen(ST77XX_RED);
-
+  fillScreen(ST77XX_GREEN);
 
   digitalWrite(TFT_BACKLIGHT, HIGH); // Backlight on
-  
+  Serial.println("done!");
   return true;
+}
+
+
+bool Adafruit_PyCamera::initCamera(void) {
+  Serial.print("Config camera...");
+
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+  config.pin_sscb_sda = SIOD_GPIO_NUM;
+  config.pin_sscb_scl = SIOC_GPIO_NUM;
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+  config.xclk_freq_hz = 20000000;
+  config.frame_size = FRAMESIZE_UXGA;
+  config.pixel_format = PIXFORMAT_RGB565;
+  config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+  config.fb_location = CAMERA_FB_IN_PSRAM;
+  config.jpeg_quality = 12;
+  config.fb_count = 1;
+
+  Serial.print("Config format...");
+  config.frame_size = FRAMESIZE_240X240;
+#if CONFIG_IDF_TARGET_ESP32S3
+  config.fb_count = 2;
+#endif
+  Serial.print("Initializing...");
+  // camera init
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera init failed with error 0x%x", err);
+    return false;
+  }
+
+  Serial.println("OK");
+
+  camera = esp_camera_sensor_get();
+  Serial.printf("Found camera PID %04X\n\r", camera->id.PID);
+  camera->set_hmirror(camera, 1);
+  return true;
+}
+
+
+bool Adafruit_PyCamera::captureAndBlit(void) {
+    Serial.println("Capturing...");
+
+    camera_fb_t *frame = NULL;
+    esp_err_t res = ESP_OK;
+#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO
+    int64_t fr_start = esp_timer_get_time();
+#endif
+
+    frame = esp_camera_fb_get();
+    
+    if (!frame) {
+      ESP_LOGE(TAG, "Camera frame capture failed");
+      return false;
+    }
+    
+    Serial.printf("Framed %d bytes (%d x %d) in @ %ld.%06ld\n\r", 
+                  frame->len, 
+                  frame->width, frame->height, 
+                  frame->timestamp.tv_sec, frame->timestamp.tv_usec);
+
+    // flip endians
+    uint8_t temp;
+    for (uint32_t i=0; i<frame->len; i+=2) {
+      temp = frame->buf[i+0];
+      frame->buf[i+0] = frame->buf[i+1];
+      frame->buf[i+1] = temp;
+    }
+    drawRGBBitmap(0, 0, (uint16_t *)frame->buf, 240, 240);
+
+    esp_camera_fb_return(frame);
+    return true;
 }
