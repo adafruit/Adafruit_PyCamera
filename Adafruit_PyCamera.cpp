@@ -7,50 +7,84 @@ Adafruit_PyCamera::Adafruit_PyCamera(void)
 
 
 bool Adafruit_PyCamera::begin(void) {
+  // Setup and turn off red LED
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
 
+  // Setup and turn off speaker
+  pinMode(45, OUTPUT);
+  digitalWrite(45, LOW);
+
+  // Setup and turn off Neopixel
   pixel.setPin(PIN_NEOPIXEL);
   pixel.updateLength(1);
   pixel.begin();
   pixel.setBrightness(50);
   setNeopixel(0x0);
- 
+
+  // boot button is also shutter
+  pinMode(SHUTTER_BUTTON, INPUT_PULLUP);
 
   if (! initDisplay()) return false;
-  if (! initCamera()) return false;
+  if (! initCamera()) return false;  // NOTE esp-camera deinits i2c!
+  if (! initSeesaw()) return false;
+
+  initSD();
+
+  _timestamp = millis();
+
   return true;
 }
 
-void Adafruit_PyCamera::setNeopixel(uint32_t c) {
-  pixel.fill(c);
-  pixel.show(); // Initialize all pixels to 'off'
-}
 
-/**************************************************************************/
-/*!
-    @brief   Input a value 0 to 255 to get a color value. The colours are a
-   transition r - g - b - back to r.
-    @param  WheelPos The position in the wheel, from 0 to 255
-    @returns  The 0xRRGGBB color
-*/
-/**************************************************************************/
-uint32_t Adafruit_PyCamera::Wheel(byte WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if (WheelPos < 85) {
-    return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if (WheelPos < 170) {
-    WheelPos -= 85;
-    return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
+bool Adafruit_PyCamera::initSD(void) {
 
+  if (! SDdetected()) {
+    Serial.println("No SD card inserted");
+    return false;
+  }
+
+  Serial.println("SD card inserted, trying to init");
+    
+  if (!sd.begin(SD_CHIP_SELECT, SD_SCK_MHZ(4))) {
+    if (sd.card()->errorCode()) {
+      Serial.printf("SD card init failure with code %x data %d\n", 
+                    sd.card()->errorCode(), sd.card()->errorData());
+    }
+    else if (sd.vol()->fatType() == 0) {
+      Serial.println("Can't find a valid FAT16/FAT32 partition.");
+    } else {
+      Serial.println("SD begin failed, can't determine error type");
+    }
+    return false;
+  }
+
+  Serial.println("Card successfully initialized");
+  uint32_t size = sd.card()->cardSize();
+  if (size == 0) {
+    Serial.println("Can't determine the card size");
+  } else {
+    uint32_t sizeMB = 0.000512 * size + 0.5;
+    Serial.printf("Card size: %d MB FAT%d\n", sizeMB, sd.vol()->fatType());
+  }
+  Serial.println("Files found (date time size name):");
+  sd.ls(LS_R | LS_DATE | LS_SIZE);
+  return true;
+}
 
 bool Adafruit_PyCamera::initSeesaw(void) {
+  if (!ss.begin(0x44)) {
+    Serial.println("seesaw friend not found!");
+    return false;
+  }
+  ss.pinMode(SS_CARDDET, INPUT_PULLUP);
+  ss.pinMode(SS_DOWN, INPUT_PULLUP);
+  ss.pinMode(SS_LEFT, INPUT_PULLUP);
+  ss.pinMode(SS_RIGHT, INPUT_PULLUP);
+  ss.pinMode(SS_UP, INPUT_PULLUP);
 
+  ss.pinMode(SS_MUTE, OUTPUT);
+  ss.digitalWrite(SS_MUTE, LOW);
   return true;
 }
 
@@ -120,8 +154,60 @@ bool Adafruit_PyCamera::initCamera(void) {
 }
 
 
+
+float Adafruit_PyCamera::readBatteryVoltage(void) {
+  return ss.analogRead(SS_BATTMON) * 2.0 * 3.3 / 1024.0;
+}
+
+bool Adafruit_PyCamera::SDdetected(void) {
+  return ss.digitalRead(SS_CARDDET);
+}
+
+uint32_t Adafruit_PyCamera::readButtons(void) {
+  last_button_state = button_state;
+  button_state = ss.digitalReadBulk(SS_INPUTS_MASK);
+  button_state |= (bool) digitalRead(SHUTTER_BUTTON);
+  return button_state;
+}
+
+bool Adafruit_PyCamera::justPressed(uint8_t button_pin) {
+  return ((last_button_state & (1UL << button_pin)) && // was not pressed before
+          !(button_state & (1UL << button_pin))); // and is pressed now
+}
+
+bool Adafruit_PyCamera::justReleased(uint8_t button_pin) {
+  return (!(last_button_state & (1UL << button_pin)) && // was pressed before
+          (button_state & (1UL << button_pin))); // and isnt pressed now
+}
+
+void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
+  ss.digitalWrite(SS_MUTE, HIGH);
+  uint16_t udelay = 1000000 / tonefreq;
+  uint32_t count = (tonetime * 1000) / (2 * udelay);
+  //tone(45, tonefreq, tonetime);
+  //delay(tonetime);
+  for (int i=0; i<count; i++) {
+    digitalWrite(45, HIGH);
+    delayMicroseconds(udelay);
+    digitalWrite(45, LOW);
+    delayMicroseconds(udelay);
+  }
+  ss.digitalWrite(SS_MUTE, LOW);
+}
+
+
+uint32_t Adafruit_PyCamera::timestamp(void) {
+  uint32_t delta = millis() - _timestamp;
+  _timestamp = millis();
+  return delta;
+}
+
+void Adafruit_PyCamera::timestampPrint(const char *msg) {
+  Serial.printf("%s: %d ms elapsed\n\r", msg, timestamp());
+}
+
 bool Adafruit_PyCamera::captureAndBlit(void) {
-    Serial.println("Capturing...");
+    //Serial.println("Capturing...");
 
     camera_fb_t *frame = NULL;
     esp_err_t res = ESP_OK;
@@ -136,10 +222,10 @@ bool Adafruit_PyCamera::captureAndBlit(void) {
       return false;
     }
     
-    Serial.printf("Framed %d bytes (%d x %d) in @ %ld.%06ld\n\r", 
+    Serial.printf("\t\t\tFramed %d bytes (%d x %d) in %d ms\n\r", 
                   frame->len, 
                   frame->width, frame->height, 
-                  frame->timestamp.tv_sec, frame->timestamp.tv_usec);
+                  timestamp());
 
     // flip endians
     uint8_t temp;
@@ -152,4 +238,32 @@ bool Adafruit_PyCamera::captureAndBlit(void) {
 
     esp_camera_fb_return(frame);
     return true;
+}
+
+
+
+void Adafruit_PyCamera::setNeopixel(uint32_t c) {
+  pixel.fill(c);
+  pixel.show(); // Initialize all pixels to 'off'
+}
+
+/**************************************************************************/
+/*!
+    @brief   Input a value 0 to 255 to get a color value. The colours are a
+   transition r - g - b - back to r.
+    @param  WheelPos The position in the wheel, from 0 to 255
+    @returns  The 0xRRGGBB color
+*/
+/**************************************************************************/
+uint32_t Adafruit_PyCamera::Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if (WheelPos < 85) {
+    return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if (WheelPos < 170) {
+    WheelPos -= 85;
+    return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
