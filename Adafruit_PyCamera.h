@@ -3,6 +3,7 @@
 #include <Adafruit_AW9523.h>
 #include <SdFat.h>
 #include "esp_camera.h"
+#include "TJpg_Decoder.h"
 
 #ifndef TAG
 #define TAG "PYCAM"
@@ -16,8 +17,6 @@
 #define AW_SEL_MASK  (1UL << AWEXP_BUTTON_SEL)
 #define AW_CARDDET_MASK (1UL << AWEXP_SD_DET)
 #define AW_INPUTS_MASK (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_OK_MASK | AW_SEL_MASK | AW_CARDDET_MASK)
-
-
 
 class PyCameraFB : public GFXcanvas16 {
  public:

@@ -1,5 +1,19 @@
 #include "Adafruit_PyCamera.h"
 
+static uint16_t *jpeg_buffer = NULL;
+
+bool buffer_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap)
+{
+  if (!jpeg_buffer) return false;
+  //Serial.printf("Drawing [%d, %d] to (%d, %d)\n", w, h, x, y);
+  for(int xi = x; xi < x+w; xi++) {
+    for (int yi = y; yi < y+h; yi++) {
+      jpeg_buffer[yi * 240 + xi] = bitmap[(yi-y)*w + (xi-x)];
+    }
+  }
+  return true;
+}
+
 Adafruit_PyCamera::Adafruit_PyCamera(void) 
   : Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RESET) {
 
@@ -52,10 +66,10 @@ bool Adafruit_PyCamera::initSD(void) {
   Serial.println("SD card inserted, trying to init");
   
   // power reset
-  aw.pinMode(AWEXP_SD_PWR, OUTPUT);
-  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
-  delay(10);
-  aw.digitalWrite(AWEXP_SD_PWR, LOW); // turn on
+  //aw.pinMode(AWEXP_SD_PWR, OUTPUT);
+  //aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
+  //delay(10);
+  //aw.digitalWrite(AWEXP_SD_PWR, LOW); // turn on
 
   if (!sd.begin(SD_CHIP_SELECT, SD_SCK_MHZ(4))) {
     if (sd.card()->errorCode()) {
@@ -84,8 +98,8 @@ bool Adafruit_PyCamera::initSD(void) {
 }
 
 void Adafruit_PyCamera::endSD() {
-  aw.pinMode(AWEXP_SD_PWR, OUTPUT);
-  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
+  //aw.pinMode(AWEXP_SD_PWR, OUTPUT);
+  //aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
 }
 
 bool Adafruit_PyCamera::initExpander(void) {
@@ -100,7 +114,7 @@ bool Adafruit_PyCamera::initExpander(void) {
   aw.pinMode(AWEXP_BACKLIGHT, OUTPUT);
   aw.digitalWrite(AWEXP_BACKLIGHT, LOW); // start dark
   aw.pinMode(AWEXP_SD_PWR, OUTPUT);
-  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
+  aw.digitalWrite(AWEXP_SD_PWR, LOW); // start on 
   aw.pinMode(AWEXP_SD_DET, INPUT);
   return true;
 }
@@ -155,14 +169,18 @@ bool Adafruit_PyCamera::initCamera(void) {
   camera_config.xclk_freq_hz = 20000000;
   camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   camera_config.fb_location = CAMERA_FB_IN_PSRAM;
-  camera_config.jpeg_quality = 12;
-  camera_config.fb_count = 2;
 
   Serial.print("Config format...");
-  //camera_config.frame_size = FRAMESIZE_UXGA;
+  /* 
+     // using RGB565 for immediate blitting
   camera_config.pixel_format = PIXFORMAT_RGB565;
-  camera_config.frame_size = FRAMESIZE_240X240;
+  camera_config.frame_size = FRAMESIZE_240X240;     
   camera_config.fb_count = 1;
+   */
+  camera_config.pixel_format = PIXFORMAT_JPEG;
+  camera_config.frame_size = FRAMESIZE_240X240;
+  camera_config.jpeg_quality = 10;
+  camera_config.fb_count = 2;
 
   Serial.print("Initializing...");
   // camera init
@@ -244,19 +262,38 @@ bool Adafruit_PyCamera::captureFrame(void) {
                 frame->len, 
                 frame->width, frame->height, 
                 timestamp());
-  // flip endians
-  uint8_t temp;
-  for (uint32_t i=0; i<frame->len; i+=2) {
-    temp = frame->buf[i+0];
-    frame->buf[i+0] = frame->buf[i+1];
-    frame->buf[i+1] = temp;
+
+  if (camera_config.pixel_format == PIXFORMAT_JPEG) {
+    Serial.print("JPEG");
+    // create the framebuffer if we haven't yet
+    if (! fb->getBuffer() || ! jpeg_buffer) {
+      jpeg_buffer = (uint16_t *) malloc(240*240*2);
+      fb->setFB(jpeg_buffer);
+    }
+    TJpgDec.setJpgScale(1);
+    // The decoder must be given the exact name of the rendering function above
+    TJpgDec.setCallback(buffer_output);
+    uint16_t w = 0, h = 0;
+    TJpgDec.getJpgSize(&w, &h, frame->buf, frame->len);
+    Serial.printf(" size: %d x %d\n\r", w, h);
+    TJpgDec.drawJpg(0, 0, frame->buf, frame->len);     
+    fb->setFB(jpeg_buffer);
+  } else if (camera_config.pixel_format == PIXFORMAT_RGB565) {
+    // flip endians
+    uint8_t temp;
+    for (uint32_t i=0; i<frame->len; i+=2) {
+      temp = frame->buf[i+0];
+      frame->buf[i+0] = frame->buf[i+1];
+      frame->buf[i+1] = temp;
+    }
+    fb->setFB((uint16_t *)frame->buf);
   }
-  fb->setFB((uint16_t *)frame->buf);
+
   return true;
 }
 
 void Adafruit_PyCamera::blitFrame(void) {
-  drawRGBBitmap(0, 0, (uint16_t *)frame->buf, 240, 240);
+  drawRGBBitmap(0, 0, (uint16_t *)fb->getBuffer(), 240, 240);
   
   esp_camera_fb_return(frame);
 }
