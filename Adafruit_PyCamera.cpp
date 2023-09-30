@@ -7,13 +7,10 @@ Adafruit_PyCamera::Adafruit_PyCamera(void)
 
 
 bool Adafruit_PyCamera::begin(void) {
-  // Setup and turn off red LED
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
-
+  Serial.println("Init PyCamera obj");
   // Setup and turn off speaker
-  pinMode(45, OUTPUT);
-  digitalWrite(45, LOW);
+  pinMode(SPEAKER, OUTPUT);
+  digitalWrite(SPEAKER, LOW);
 
   // Setup and turn off Neopixel
   pixel.setPin(PIN_NEOPIXEL);
@@ -24,12 +21,16 @@ bool Adafruit_PyCamera::begin(void) {
 
   // boot button is also shutter
   pinMode(SHUTTER_BUTTON, INPUT_PULLUP);
+  
+  I2Cscan();
 
+  if (! initExpander()) return false;
   if (! initDisplay()) return false;
   if (! initCamera()) return false;  // NOTE esp-camera deinits i2c!
-  if (! initSeesaw()) return false;
+ // if (! initExpander()) return false;
+ // if (! initSeesaw()) return false;
 
-  initSD();
+ // initSD();
 
   _timestamp = millis();
 
@@ -72,31 +73,44 @@ bool Adafruit_PyCamera::initSD(void) {
   return true;
 }
 
-bool Adafruit_PyCamera::initSeesaw(void) {
-  if (!ss.begin(0x44)) {
-    Serial.println("seesaw friend not found!");
+bool Adafruit_PyCamera::initExpander(void) {
+  Serial.print("Init AW9523...");
+  if (!aw.begin(0x5B)) {
+    Serial.println("AW9523 not found!");
     return false;
   }
-  ss.pinMode(SS_CARDDET, INPUT_PULLUP);
-  ss.pinMode(SS_DOWN, INPUT_PULLUP);
-  ss.pinMode(SS_LEFT, INPUT_PULLUP);
-  ss.pinMode(SS_RIGHT, INPUT_PULLUP);
-  ss.pinMode(SS_UP, INPUT_PULLUP);
+  Serial.println("OK!");
+  aw.pinMode(AWEXP_SPKR_SD, OUTPUT);
+  aw.digitalWrite(AWEXP_SPKR_SD, LOW); // start muted
+  aw.pinMode(AWEXP_BACKLIGHT, OUTPUT);
+  aw.digitalWrite(AWEXP_BACKLIGHT, LOW); // start dark
+  aw.pinMode(AWEXP_SD_PWR, OUTPUT);
+  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
+  aw.pinMode(AWEXP_SD_DET, INPUT);
 
-  ss.pinMode(SS_MUTE, OUTPUT);
-  ss.digitalWrite(SS_MUTE, LOW);
+  aw.pinMode(AWEXP_CAM_PWDN, OUTPUT);
+  aw.digitalWrite(AWEXP_CAM_PWDN, HIGH); // camera off
+  aw.pinMode(AWEXP_CAM_RST, OUTPUT);
+  aw.digitalWrite(AWEXP_CAM_RST, LOW); // camera in reset
+  delay(10);
+  aw.digitalWrite(AWEXP_CAM_PWDN, LOW);
+  delay(10);
+  aw.digitalWrite(AWEXP_CAM_RST, HIGH);
+  delay(10);
+
   return true;
 }
 
 bool Adafruit_PyCamera::initDisplay(void) {
   Serial.print("Init display....");
-  pinMode(TFT_BACKLIGHT, OUTPUT);
-  digitalWrite(TFT_BACKLIGHT, LOW); // Backlight off
+
+  aw.pinMode(AWEXP_BACKLIGHT, OUTPUT);
+  aw.digitalWrite(AWEXP_BACKLIGHT, LOW); // Backlight off
   init(240, 240);   // Initialize ST7789 screen
   setRotation(1);
   fillScreen(ST77XX_GREEN);
 
-  digitalWrite(TFT_BACKLIGHT, HIGH); // Backlight on
+  digitalWrite(AWEXP_BACKLIGHT, LOW); // Backlight on
   Serial.println("done!");
   return true;
 }
@@ -105,43 +119,51 @@ bool Adafruit_PyCamera::initDisplay(void) {
 bool Adafruit_PyCamera::initCamera(void) {
   Serial.print("Config camera...");
 
-  camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer = LEDC_TIMER_0;
-  config.pin_d0 = Y2_GPIO_NUM;
-  config.pin_d1 = Y3_GPIO_NUM;
-  config.pin_d2 = Y4_GPIO_NUM;
-  config.pin_d3 = Y5_GPIO_NUM;
-  config.pin_d4 = Y6_GPIO_NUM;
-  config.pin_d5 = Y7_GPIO_NUM;
-  config.pin_d6 = Y8_GPIO_NUM;
-  config.pin_d7 = Y9_GPIO_NUM;
-  config.pin_xclk = XCLK_GPIO_NUM;
-  config.pin_pclk = PCLK_GPIO_NUM;
-  config.pin_vsync = VSYNC_GPIO_NUM;
-  config.pin_href = HREF_GPIO_NUM;
-  config.pin_sscb_sda = SIOD_GPIO_NUM;
-  config.pin_sscb_scl = SIOC_GPIO_NUM;
-  config.pin_pwdn = PWDN_GPIO_NUM;
-  config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
-  config.frame_size = FRAMESIZE_UXGA;
-  config.pixel_format = PIXFORMAT_RGB565;
-  config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
-  config.fb_location = CAMERA_FB_IN_PSRAM;
-  config.jpeg_quality = 12;
-  config.fb_count = 1;
+  aw.pinMode(AWEXP_CAM_PWDN, OUTPUT);
+  aw.pinMode(AWEXP_CAM_RST, OUTPUT);
+  aw.digitalWrite(AWEXP_CAM_RST, LOW);
+  aw.digitalWrite(AWEXP_CAM_PWDN, HIGH);
+  delay(10);
+  aw.digitalWrite(AWEXP_CAM_PWDN, LOW);
+  delay(10);
+  aw.digitalWrite(AWEXP_CAM_RST, HIGH);
+  delay(10);
+
+  camera_config.ledc_channel = LEDC_CHANNEL_0;
+  camera_config.ledc_timer = LEDC_TIMER_0;
+  camera_config.pin_d0 = Y2_GPIO_NUM;
+  camera_config.pin_d1 = Y3_GPIO_NUM;
+  camera_config.pin_d2 = Y4_GPIO_NUM;
+  camera_config.pin_d3 = Y5_GPIO_NUM;
+  camera_config.pin_d4 = Y6_GPIO_NUM;
+  camera_config.pin_d5 = Y7_GPIO_NUM;
+  camera_config.pin_d6 = Y8_GPIO_NUM;
+  camera_config.pin_d7 = Y9_GPIO_NUM;
+  camera_config.pin_xclk = XCLK_GPIO_NUM;
+  camera_config.pin_pclk = PCLK_GPIO_NUM;
+  camera_config.pin_vsync = VSYNC_GPIO_NUM;
+  camera_config.pin_href = HREF_GPIO_NUM;
+  camera_config.pin_sccb_sda = SIOD_GPIO_NUM;
+  camera_config.pin_sccb_scl = SIOC_GPIO_NUM;
+  camera_config.pin_pwdn = PWDN_GPIO_NUM;
+  camera_config.pin_reset = RESET_GPIO_NUM;
+  camera_config.xclk_freq_hz = 20000000;
+  camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+  camera_config.fb_location = CAMERA_FB_IN_PSRAM;
+  camera_config.jpeg_quality = 12;
+  camera_config.fb_count = 1;
 
   Serial.print("Config format...");
-  config.frame_size = FRAMESIZE_240X240;
-#if CONFIG_IDF_TARGET_ESP32S3
-  config.fb_count = 2;
-#endif
+  //camera_config.frame_size = FRAMESIZE_UXGA;
+  camera_config.pixel_format = PIXFORMAT_RGB565;
+  camera_config.frame_size = FRAMESIZE_240X240;
+  camera_config.fb_count = 1;
+
   Serial.print("Initializing...");
   // camera init
-  esp_err_t err = esp_camera_init(&config);
+  esp_err_t err = esp_camera_init(&camera_config);
   if (err != ESP_OK) {
-    Serial.printf("Camera init failed with error 0x%x", err);
+    Serial.printf("Camera init failed with error 0x%x\n\r", err);
     return false;
   }
 
@@ -156,16 +178,16 @@ bool Adafruit_PyCamera::initCamera(void) {
 
 
 float Adafruit_PyCamera::readBatteryVoltage(void) {
-  return ss.analogRead(SS_BATTMON) * 2.0 * 3.3 / 1024.0;
+  return 0; //ss.analogRead(AW_BATTMON) * 2.0 * 3.3 / 1024.0;
 }
 
 bool Adafruit_PyCamera::SDdetected(void) {
-  return ss.digitalRead(SS_CARDDET);
+  return aw.digitalRead(AWEXP_SD_DET);
 }
 
 uint32_t Adafruit_PyCamera::readButtons(void) {
   last_button_state = button_state;
-  button_state = ss.digitalReadBulk(SS_INPUTS_MASK);
+  //button_state = aw.digitalReadBulk(AW_INPUTS_MASK);
   button_state |= (bool) digitalRead(SHUTTER_BUTTON);
   return button_state;
 }
@@ -181,7 +203,7 @@ bool Adafruit_PyCamera::justReleased(uint8_t button_pin) {
 }
 
 void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
-  ss.digitalWrite(SS_MUTE, HIGH);
+  aw.digitalWrite(AWEXP_SD_DET, HIGH);
   uint16_t udelay = 1000000 / tonefreq;
   uint32_t count = (tonetime * 1000) / (2 * udelay);
   //tone(45, tonefreq, tonetime);
@@ -192,7 +214,7 @@ void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
     digitalWrite(45, LOW);
     delayMicroseconds(udelay);
   }
-  ss.digitalWrite(SS_MUTE, LOW);
+  aw.digitalWrite(AWEXP_SD_DET, LOW);
 }
 
 
@@ -241,6 +263,20 @@ bool Adafruit_PyCamera::captureAndBlit(void) {
 }
 
 
+void Adafruit_PyCamera::I2Cscan(void) {
+  Wire.begin();
+  Serial.print("I2C Scan: ");
+  for (int addr=0; addr<=0x7F; addr++) {
+    Wire.beginTransmission(addr);
+    bool found = (Wire.endTransmission() == 0);
+    if (found) {
+      Serial.print("0x");
+      Serial.print(addr, HEX);
+      Serial.print(", ");
+    }
+  }
+  Serial.println();
+}
 
 void Adafruit_PyCamera::setNeopixel(uint32_t c) {
   pixel.fill(c);

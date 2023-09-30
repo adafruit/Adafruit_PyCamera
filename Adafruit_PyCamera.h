@@ -1,6 +1,6 @@
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <Adafruit_NeoPixel.h>
-#include <Adafruit_seesaw.h>
+#include <Adafruit_AW9523.h>
 #include <SdFat.h>
 #include "esp_camera.h"
 
@@ -8,29 +8,14 @@
 #define TAG "PYCAM"
 #endif
 
-// on the main chip
-#define SHUTTER_BUTTON 0
-// on the seesaw expander
-// inputs
-#define SS_DOWN 16
-#define SS_LEFT 2
-#define SS_UP 3
-#define SS_RIGHT 6
-#define SS_CARDDET 4
-#define SS_DOWN_MASK (1UL << SS_DOWN)
-#define SS_LEFT_MASK (1UL << SS_LEFT)
-#define SS_UP_MASK  (1UL << SS_UP)
-#define SS_RIGHT_MASK  (1UL << SS_RIGHT)
-#define SS_CARDDET_MASK (1UL << SS_CARDDET)
-#define SS_INPUTS_MASK (SS_DOWN_MASK | SS_LEFT_MASK | SS_UP_MASK | SS_RIGHT_MASK | SS_CARDDET_MASK)
-// analogs
-#define SS_BATTMON 18
-
-// outputs
-#define SS_CAMERA_RST 19
-#define SS_CAMERA_PWDN 20
-#define SS_MUTE 17
-
+/*
+#define AW_DOWN_MASK (1UL << AW_DOWN)
+#define AW_LEFT_MASK (1UL << AW_LEFT)
+#define AW_UP_MASK  (1UL << AW_UP)
+#define AW_RIGHT_MASK  (1UL << AW_RIGHT)
+#define AW_CARDDET_MASK (1UL << AW_CARDDET)
+#define AW_INPUTS_MASK (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_CARDDET_MASK)
+*/
 class Adafruit_PyCamera : public Adafruit_ST7789 {
  public:
   Adafruit_PyCamera();
@@ -39,8 +24,9 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   bool initCamera(void);
   bool initDisplay(void);
-  bool initSeesaw(void);
+  bool initExpander(void);
   bool initSD(void);
+  void I2Cscan(void);
 
   bool captureAndBlit(void);
 
@@ -60,9 +46,11 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   sensor_t *camera;
   Adafruit_NeoPixel pixel;
-  Adafruit_seesaw ss;
+  Adafruit_AW9523 aw;
   SdFat sd;
   uint32_t _timestamp;
   uint32_t last_button_state = 0xFFFFFFFF;
   uint32_t button_state = 0xFFFFFFFF;
+
+  camera_config_t camera_config;
 };
