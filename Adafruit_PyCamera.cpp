@@ -32,6 +32,7 @@ bool Adafruit_PyCamera::begin(void) {
   Wire.end();
   Wire.setPins(SDA, SCL);
   Wire.begin();
+  if (! initAccel()) return false;
 
   fb = new PyCameraFB(240, 240);
   
@@ -260,6 +261,66 @@ void Adafruit_PyCamera::blitFrame(void) {
   esp_camera_fb_return(frame);
 }
 
+
+bool Adafruit_PyCamera::initAccel(void) {
+  lis_dev = new Adafruit_I2CDevice(0x19, &Wire);
+  if (!lis_dev->begin()) {
+    return false;
+  }
+  Adafruit_BusIO_Register _chip_id = Adafruit_BusIO_Register(
+      lis_dev,  LIS3DH_REG_WHOAMI, 1);
+  if (_chip_id.read() != 0x33) {
+    return false;
+  }
+  Adafruit_BusIO_Register _ctrl1 = Adafruit_BusIO_Register(
+      lis_dev, LIS3DH_REG_CTRL1, 1);
+  _ctrl1.write(0x07); // enable all axes, normal mode
+  Adafruit_BusIO_RegisterBits data_rate_bits =
+      Adafruit_BusIO_RegisterBits(&_ctrl1, 4, 4);
+  data_rate_bits.write(0b0111); // set to 400Hz update
+
+  Adafruit_BusIO_Register _ctrl4 = Adafruit_BusIO_Register(
+      lis_dev, LIS3DH_REG_CTRL4, 1);
+  _ctrl4.write(0x88); // High res & BDU enabled
+  Adafruit_BusIO_RegisterBits range_bits =
+      Adafruit_BusIO_RegisterBits(&_ctrl4, 2, 4);
+  range_bits.write(0b11);
+
+  Serial.println("Found LIS3DH");
+  return true;
+}
+
+
+bool Adafruit_PyCamera::readAccelData(int16_t *x, int16_t *y, int16_t *z) {
+  uint8_t register_address = LIS3DH_REG_OUT_X_L;
+  register_address |= 0x80; // set [7] for auto-increment
+
+  Adafruit_BusIO_Register xl_data = Adafruit_BusIO_Register(
+      lis_dev, register_address, 6);
+
+  uint8_t buffer[6];
+  if (! xl_data.read(buffer, 6)) return false;
+
+  *x = buffer[0];
+  *x |= ((uint16_t)buffer[1]) << 8;
+  *y = buffer[2];
+  *y |= ((uint16_t)buffer[3]) << 8;
+  *z = buffer[4];
+  *z |= ((uint16_t)buffer[5]) << 8;
+
+  return true;
+}
+
+bool Adafruit_PyCamera::readAccelData(float *x_g, float *y_g, float *z_g) {
+  int16_t x, y, z;
+  if (!readAccelData(&x, &y, &z)) return false;
+
+  uint8_t lsb_value = 48; // for 16G
+  *x_g = lsb_value * ((float)x / LIS3DH_LSB16_TO_KILO_LSB10);
+  *y_g = lsb_value * ((float)y / LIS3DH_LSB16_TO_KILO_LSB10);
+  *z_g = lsb_value * ((float)z / LIS3DH_LSB16_TO_KILO_LSB10);
+  return true;
+}
 
 void Adafruit_PyCamera::I2Cscan(void) {
   Wire.begin();
