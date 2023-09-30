@@ -48,7 +48,13 @@ bool Adafruit_PyCamera::initSD(void) {
   }
 
   Serial.println("SD card inserted, trying to init");
-    
+  
+  // power reset
+  aw.pinMode(AWEXP_SD_PWR, OUTPUT);
+  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
+  delay(10);
+  aw.digitalWrite(AWEXP_SD_PWR, LOW); // turn on
+
   if (!sd.begin(SD_CHIP_SELECT, SD_SCK_MHZ(4))) {
     if (sd.card()->errorCode()) {
       Serial.printf("SD card init failure with code %x data %d\n", 
@@ -73,6 +79,11 @@ bool Adafruit_PyCamera::initSD(void) {
   Serial.println("Files found (date time size name):");
   sd.ls(LS_R | LS_DATE | LS_SIZE);
   return true;
+}
+
+void Adafruit_PyCamera::endSD() {
+  aw.pinMode(AWEXP_SD_PWR, OUTPUT);
+  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
 }
 
 bool Adafruit_PyCamera::initExpander(void) {

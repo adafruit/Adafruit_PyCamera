@@ -27,6 +27,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   bool initDisplay(void);
   bool initExpander(void);
   bool initSD(void);
+  void endSD(void);
   void I2Cscan(void);
 
   bool captureAndBlit(void);
