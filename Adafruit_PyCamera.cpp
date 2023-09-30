@@ -26,14 +26,15 @@ bool Adafruit_PyCamera::begin(void) {
 
   if (! initExpander()) return false;
   if (! initDisplay()) return false;
-  if (! initCamera()) return false;  // NOTE esp-camera deinits i2c!
+  if (! initCamera()) return false;  
 
+  // NOTE esp-camera deinits i2c!
   Wire.end();
   Wire.setPins(SDA, SCL);
   Wire.begin();
 
- // initSD();
-
+  fb = new PyCameraFB(240, 240);
+  
   _timestamp = millis();
 
   return true;
@@ -224,38 +225,39 @@ void Adafruit_PyCamera::timestampPrint(const char *msg) {
   Serial.printf("%s: %d ms elapsed\n\r", msg, timestamp());
 }
 
-bool Adafruit_PyCamera::captureAndBlit(void) {
-    //Serial.println("Capturing...");
-
-    camera_fb_t *frame = NULL;
-    esp_err_t res = ESP_OK;
+bool Adafruit_PyCamera::captureFrame(void) {
+  //Serial.println("Capturing...");
+  esp_err_t res = ESP_OK;
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO
-    int64_t fr_start = esp_timer_get_time();
+  int64_t fr_start = esp_timer_get_time();
 #endif
+  
+  frame = esp_camera_fb_get();
+  
+  if (!frame) {
+    ESP_LOGE(TAG, "Camera frame capture failed");
+    return false;
+  }
+  
+  Serial.printf("\t\t\tFramed %d bytes (%d x %d) in %d ms\n\r", 
+                frame->len, 
+                frame->width, frame->height, 
+                timestamp());
+  // flip endians
+  uint8_t temp;
+  for (uint32_t i=0; i<frame->len; i+=2) {
+    temp = frame->buf[i+0];
+    frame->buf[i+0] = frame->buf[i+1];
+    frame->buf[i+1] = temp;
+  }
+  fb->setFB((uint16_t *)frame->buf);
+  return true;
+}
 
-    frame = esp_camera_fb_get();
-    
-    if (!frame) {
-      ESP_LOGE(TAG, "Camera frame capture failed");
-      return false;
-    }
-    
-    Serial.printf("\t\t\tFramed %d bytes (%d x %d) in %d ms\n\r", 
-                  frame->len, 
-                  frame->width, frame->height, 
-                  timestamp());
-
-    // flip endians
-    uint8_t temp;
-    for (uint32_t i=0; i<frame->len; i+=2) {
-      temp = frame->buf[i+0];
-      frame->buf[i+0] = frame->buf[i+1];
-      frame->buf[i+1] = temp;
-    }
-    drawRGBBitmap(0, 0, (uint16_t *)frame->buf, 240, 240);
-
-    esp_camera_fb_return(frame);
-    return true;
+void Adafruit_PyCamera::blitFrame(void) {
+  drawRGBBitmap(0, 0, (uint16_t *)frame->buf, 240, 240);
+  
+  esp_camera_fb_return(frame);
 }
 
 

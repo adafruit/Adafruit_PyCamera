@@ -17,6 +17,18 @@
 #define AW_CARDDET_MASK (1UL << AWEXP_SD_DET)
 #define AW_INPUTS_MASK (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_OK_MASK | AW_SEL_MASK | AW_CARDDET_MASK)
 
+
+
+class PyCameraFB : public GFXcanvas16 {
+ public:
+ PyCameraFB(uint16_t w, uint16_t h) : GFXcanvas16(w,h) { free(buffer); buffer = NULL; };
+  
+  void setFB(uint16_t *fb) {
+    buffer = fb;
+  }
+};
+
+
 class Adafruit_PyCamera : public Adafruit_ST7789 {
  public:
   Adafruit_PyCamera();
@@ -30,7 +42,8 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   void endSD(void);
   void I2Cscan(void);
 
-  bool captureAndBlit(void);
+  bool captureFrame(void);
+  void blitFrame(void);
 
   void speaker_tone(uint32_t tonefreq, uint32_t tonetime);
 
@@ -47,6 +60,9 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   void timestampPrint(const char *msg) ;
 
   sensor_t *camera;
+  camera_fb_t *frame = NULL;
+  PyCameraFB *fb;
+
   Adafruit_NeoPixel pixel;
   Adafruit_AW9523 aw;
   SdFat sd;
@@ -56,3 +72,4 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   camera_config_t camera_config;
 };
+
