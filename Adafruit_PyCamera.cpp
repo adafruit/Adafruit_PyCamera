@@ -27,8 +27,10 @@ bool Adafruit_PyCamera::begin(void) {
   if (! initExpander()) return false;
   if (! initDisplay()) return false;
   if (! initCamera()) return false;  // NOTE esp-camera deinits i2c!
- // if (! initExpander()) return false;
- // if (! initSeesaw()) return false;
+
+  Wire.end();
+  Wire.setPins(SDA, SCL);
+  Wire.begin();
 
  // initSD();
 
@@ -87,17 +89,6 @@ bool Adafruit_PyCamera::initExpander(void) {
   aw.pinMode(AWEXP_SD_PWR, OUTPUT);
   aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
   aw.pinMode(AWEXP_SD_DET, INPUT);
-
-  aw.pinMode(AWEXP_CAM_PWDN, OUTPUT);
-  aw.digitalWrite(AWEXP_CAM_PWDN, HIGH); // camera off
-  aw.pinMode(AWEXP_CAM_RST, OUTPUT);
-  aw.digitalWrite(AWEXP_CAM_RST, LOW); // camera in reset
-  delay(10);
-  aw.digitalWrite(AWEXP_CAM_PWDN, LOW);
-  delay(10);
-  aw.digitalWrite(AWEXP_CAM_RST, HIGH);
-  delay(10);
-
   return true;
 }
 
@@ -119,6 +110,7 @@ bool Adafruit_PyCamera::initDisplay(void) {
 bool Adafruit_PyCamera::initCamera(void) {
   Serial.print("Config camera...");
 
+  // perform a hardware reset
   aw.pinMode(AWEXP_CAM_PWDN, OUTPUT);
   aw.pinMode(AWEXP_CAM_RST, OUTPUT);
   aw.digitalWrite(AWEXP_CAM_RST, LOW);
@@ -151,7 +143,7 @@ bool Adafruit_PyCamera::initCamera(void) {
   camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   camera_config.fb_location = CAMERA_FB_IN_PSRAM;
   camera_config.jpeg_quality = 12;
-  camera_config.fb_count = 1;
+  camera_config.fb_count = 2;
 
   Serial.print("Config format...");
   //camera_config.frame_size = FRAMESIZE_UXGA;
@@ -178,7 +170,7 @@ bool Adafruit_PyCamera::initCamera(void) {
 
 
 float Adafruit_PyCamera::readBatteryVoltage(void) {
-  return 0; //ss.analogRead(AW_BATTMON) * 2.0 * 3.3 / 1024.0;
+  return analogRead(BATT_MONITOR) * 2.0 * 3.3 / 4096;
 }
 
 bool Adafruit_PyCamera::SDdetected(void) {
@@ -187,7 +179,7 @@ bool Adafruit_PyCamera::SDdetected(void) {
 
 uint32_t Adafruit_PyCamera::readButtons(void) {
   last_button_state = button_state;
-  //button_state = aw.digitalReadBulk(AW_INPUTS_MASK);
+  button_state = aw.inputGPIO() & AW_INPUTS_MASK;
   button_state |= (bool) digitalRead(SHUTTER_BUTTON);
   return button_state;
 }
@@ -203,18 +195,11 @@ bool Adafruit_PyCamera::justReleased(uint8_t button_pin) {
 }
 
 void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
-  aw.digitalWrite(AWEXP_SD_DET, HIGH);
-  uint16_t udelay = 1000000 / tonefreq;
-  uint32_t count = (tonetime * 1000) / (2 * udelay);
-  //tone(45, tonefreq, tonetime);
-  //delay(tonetime);
-  for (int i=0; i<count; i++) {
-    digitalWrite(45, HIGH);
-    delayMicroseconds(udelay);
-    digitalWrite(45, LOW);
-    delayMicroseconds(udelay);
-  }
-  aw.digitalWrite(AWEXP_SD_DET, LOW);
+   aw.digitalWrite(AWEXP_SPKR_SD, HIGH); // un-mute
+   tone(SPEAKER, tonefreq, tonetime);  // tone1 - B5
+   delay(tonetime);
+   aw.digitalWrite(AWEXP_SPKR_SD, LOW); // mute
+
 }
 
 
