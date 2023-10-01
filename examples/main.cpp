@@ -6,8 +6,8 @@ Adafruit_PyCamera pycamera;
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial) yield();
-  delay(1000);
+  //while (!Serial) yield();
+  //delay(1000);
 
   Serial.setDebugOutput(true);
   Serial.println("Hello world");
@@ -28,12 +28,6 @@ void loop() {
   
   pycamera.readButtons();
   //Serial.printf("Buttons: 0x%08X\n\r",  pycamera.readButtons());
-
-  if (pycamera.justPressed(SHUTTER_BUTTON)) {
-    Serial.println("Snap!");
-    pycamera.speaker_tone(988, 100);  // tone1 - B5
-    pycamera.speaker_tone(1319, 200); // tone2 - E6
-  }
 
   //pycamera.timestamp();
   pycamera.captureFrame();
@@ -75,7 +69,7 @@ void loop() {
 
   float x_ms2, y_ms2, z_ms2;
   if (pycamera.readAccelData(&x_ms2, &y_ms2, &z_ms2)) {
-    Serial.printf("X=%0.2f, Y=%0.2f, Z=%0.2f\n\r", x_ms2, y_ms2, z_ms2);
+    //Serial.printf("X=%0.2f, Y=%0.2f, Z=%0.2f\n\r", x_ms2, y_ms2, z_ms2);
     pycamera.fb->setCursor(0, 220);
     pycamera.fb->setTextSize(2);
     pycamera.fb->setTextColor(pycamera.color565(255, 255, 255));
@@ -85,6 +79,21 @@ void loop() {
   }
   
   pycamera.blitFrame();
+
+  if (pycamera.justPressed(SHUTTER_BUTTON)) {
+    Serial.println("Snap!");
+    if (pycamera.takePhoto("IMAGE")) {
+      pycamera.fb->setCursor(120, 100);
+      pycamera.fb->setTextSize(2);
+      pycamera.fb->setTextColor(pycamera.color565(255, 255, 255));
+      pycamera.fb->print("Snap!");
+      pycamera.speaker_tone(100, 50);  // tone1 - B5
+      pycamera.blitFrame();
+    }
+    //pycamera.speaker_tone(988, 100);  // tone1 - B5
+    //pycamera.speaker_tone(1319, 200); // tone2 - E6
+  }
+
 
   delay(10);
   

@@ -34,7 +34,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   bool begin(void);
 
-  bool initCamera(void);
+  bool initCamera(bool hwreset, framesize_t framesize);
   bool initDisplay(void);
   bool initExpander(void);
   bool initAccel(void);
@@ -44,6 +44,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   bool captureFrame(void);
   void blitFrame(void);
+  bool takePhoto(char *filename);
 
   void speaker_tone(uint32_t tonefreq, uint32_t tonetime);
 
