@@ -46,6 +46,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   void blitFrame(void);
   bool takePhoto(const char *filename_base, framesize_t framesize);
   bool setFramesize(framesize_t framesize);
+  bool setSpecialEffect(uint8_t effect);
 
   void speaker_tone(uint32_t tonefreq, uint32_t tonetime);
 
@@ -78,6 +79,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   uint32_t button_state = 0xFFFFFFFF;
 
   framesize_t photoSize = FRAMESIZE_VGA;
+  int8_t specialEffect = 0;
   camera_config_t camera_config;
 };
 

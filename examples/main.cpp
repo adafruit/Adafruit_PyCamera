@@ -144,6 +144,17 @@ void loop() {
     }
   }
 
+  if (pycamera.justPressed(AWEXP_BUTTON_RIGHT)) {
+    pycamera.specialEffect = (pycamera.specialEffect + 1) % 7;
+    pycamera.setSpecialEffect(pycamera.specialEffect);
+    Serial.printf("set effect: %d\n\r", pycamera.specialEffect);
+  }
+  if (pycamera.justPressed(AWEXP_BUTTON_LEFT)) {
+    pycamera.specialEffect = (pycamera.specialEffect + 6) % 7;
+    pycamera.setSpecialEffect(pycamera.specialEffect);
+    Serial.printf("set effect: %d\n\r", pycamera.specialEffect);
+  }
+
   if (pycamera.justPressed(SHUTTER_BUTTON)) {
     Serial.println("Snap!");
     if (pycamera.takePhoto("IMAGE", pycamera.photoSize)) {

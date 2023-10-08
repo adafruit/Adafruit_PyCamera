@@ -142,6 +142,15 @@ bool Adafruit_PyCamera::setFramesize(framesize_t framesize) {
   return true;
 }
 
+bool Adafruit_PyCamera::setSpecialEffect(uint8_t effect) {
+  uint8_t ret = camera->set_special_effect(camera, effect);
+  if (ret != 0) {
+    Serial.printf("Could not set effect: error 0x%x\n", ret);
+    return false;
+  }
+  return true;
+}
+
 bool Adafruit_PyCamera::initCamera(bool hwreset) {
   Serial.print("Config camera...");
   Wire.begin();
