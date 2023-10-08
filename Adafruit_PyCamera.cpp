@@ -23,7 +23,7 @@ Adafruit_PyCamera::Adafruit_PyCamera(void)
 }
 
 
-bool Adafruit_PyCamera::begin(void) {
+bool Adafruit_PyCamera::begin() {
   Serial.println("Init PyCamera obj");
   // Setup and turn off speaker
   pinMode(SPEAKER, OUTPUT);
@@ -43,7 +43,8 @@ bool Adafruit_PyCamera::begin(void) {
 
   if (! initExpander()) return false;
   if (! initDisplay()) return false;
-  if (! initCamera(true, FRAMESIZE_VGA)) return false;  
+  if (! initCamera(true)) return false;  
+  if (! setFramesize(FRAMESIZE_240X240));
   if (SDdetected() && ! initSD()) return false;
   if (! initAccel()) return false;
 
@@ -132,9 +133,18 @@ bool Adafruit_PyCamera::initDisplay(void) {
   return true;
 }
 
+bool Adafruit_PyCamera::setFramesize(framesize_t framesize) {
+  uint8_t ret = camera->set_framesize(camera, framesize);
+  if (ret != 0) {
+    Serial.printf("Could not set resolution: error 0x%x\n", ret);
+    return false;
+  }
+  return true;
+}
 
-bool Adafruit_PyCamera::initCamera(bool hwreset, framesize_t framesize) {
+bool Adafruit_PyCamera::initCamera(bool hwreset) {
   Serial.print("Config camera...");
+  Wire.begin();
 
   if (hwreset) {
     // perform a hardware reset
@@ -176,12 +186,12 @@ bool Adafruit_PyCamera::initCamera(bool hwreset, framesize_t framesize) {
   Serial.print("Config format...");
   /* 
      // using RGB565 for immediate blitting
-  camera_config.pixel_format = PIXFORMAT_RGB565;
-  camera_config.frame_size = FRAMESIZE_240X240;     
-  camera_config.fb_count = 1;
+     camera_config.pixel_format = PIXFORMAT_RGB565;
+     camera_config.frame_size = FRAMESIZE_240X240;     
+     camera_config.fb_count = 1;
    */
   camera_config.pixel_format = PIXFORMAT_JPEG;
-  camera_config.frame_size = framesize;
+  camera_config.frame_size = FRAMESIZE_UXGA; // start with biggest possible image supported!!! do not change this
   camera_config.jpeg_quality = 10;
   camera_config.fb_count = 2;
 
@@ -198,11 +208,6 @@ bool Adafruit_PyCamera::initCamera(bool hwreset, framesize_t framesize) {
   camera = esp_camera_sensor_get();
   Serial.printf("Found camera PID %04X\n\r", camera->id.PID);
   camera->set_hmirror(camera, 1);
-
-  // NOTE esp-camera deinits i2c!
-  Wire.end();
-  Wire.setPins(SDA, SCL);
-  Wire.begin();
 
   return true;
 }
@@ -242,7 +247,12 @@ void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
 
 }
 
-bool Adafruit_PyCamera::takePhoto(char *filename_base) {
+bool Adafruit_PyCamera::takePhoto(const char *filename_base, framesize_t framesize) {
+  bool ok = false;
+  File file;
+  esp_err_t res = ESP_OK;
+
+
   if (!SDdetected()) {
     Serial.println("No SD card inserted");
     return false;
@@ -253,48 +263,63 @@ bool Adafruit_PyCamera::takePhoto(char *filename_base) {
     return false;
   }
 
+  // we're probably going to succeed in saving the file so we should
+  // change rez now since we need to grab two frames worth to clear out a cache
+  Serial.println("Reconfiguring resolution");
+  if (! setFramesize(framesize))
+    return false;
+
+  // capture and toss first internal buffer
+  frame = esp_camera_fb_get();
+  if (! frame) {
+    esp_camera_fb_return(frame);
+    setFramesize(FRAMESIZE_240X240);
+    Serial.println("Couldnt capture first frame");
+    return false;
+  }
+  Serial.printf("\t\t\tSnapped 1st %d bytes (%d x %d) in %d ms\n\r", 
+                frame->len, 
+                frame->width, frame->height, 
+                timestamp());
+  esp_camera_fb_return(frame);
+    
+  // capture and toss second internal buffer
+  frame = esp_camera_fb_get();
+  if (! frame) {
+    esp_camera_fb_return(frame);
+    Serial.println("Couldnt capture second frame");
+    setFramesize(FRAMESIZE_240X240);
+    return false;
+  }
+  Serial.printf("\t\t\tSnapped 2nd %d bytes (%d x %d) in %d ms\n\r", 
+                frame->len, 
+                frame->width, frame->height, 
+                timestamp());
   char fullfilename[64];
   for (int inc=0; inc <= 1000; inc++) {
     if (inc == 1000) return false;
     snprintf(fullfilename, sizeof(fullfilename), "%s%03d.jpg", filename_base, inc);
     if (! sd.exists(fullfilename)) break;
   }
-
-  File file;
   // Create the file
-  if (! file.open(fullfilename, FILE_WRITE)) {
-    Serial.printf("File '%s' open failed\n\r", fullfilename);
-    return false;
+  if (file.open(fullfilename, FILE_WRITE)) {
+    if (file.write(frame->buf, frame->len)) {
+      Serial.printf("Saved JPEG to filename %s\n\r", fullfilename);
+      file.close();
+      // check what we wrote!
+      sd.ls(LS_R | LS_DATE | LS_SIZE);
+      
+      ok = true;
+    } else {
+      Serial.println("Couldn't write JPEG data to file");
+    }
   }
-
-  //Serial.println("Reconfiguring resolution");
-  // uint8_t ret = camera->set_framesize(camera, FRAMESIZE_240X240);
-  // if (ret != 0) {
-  //   Serial.printf("Could not set resolution: error 0x%x\n", ret);
-  //  return false;
-  //  }
-  // delay(500);
-  if (captureFrame()) {
-      if (file.write(frame->buf, frame->len)) {
-        Serial.printf("Saved JPEG to filename %s\n\r", fullfilename);
-        file.close();
-        sd.ls(LS_R | LS_DATE | LS_SIZE);
-
-        esp_camera_fb_return(frame);
-        return true;
-      } else {
-        Serial.println("Couldn't write JPEG data to file");
-      }
-  } else {
-    Serial.println("Couldnt capture frame");
-  }
-
-  // even if it doesnt work out, reset camera and close file
+  
+  // even if it doesnt work out, reset camera size and close file
+  esp_camera_fb_return(frame);
   file.close();
-  //if (camera->set_framesize(camera, FRAMESIZE_240X240) != 0) {
-  //  Serial.println("Could not re-set resolution");
-  // }
-  return false;
+  setFramesize(FRAMESIZE_240X240);
+  return ok;
 
 }
 
@@ -350,7 +375,7 @@ bool Adafruit_PyCamera::captureFrame(void) {
     } else {
       scale = 8;
     }
-    Serial.printf(" size: %d x %d, scale %d\n\r", w, h, scale);
+    //Serial.printf(" size: %d x %d, scale %d\n\r", w, h, scale);
     TJpgDec.setJpgScale(scale);
     TJpgDec.setCallback(buffer_output);
     TJpgDec.drawJpg(xoff, yoff, frame->buf, frame->len);     

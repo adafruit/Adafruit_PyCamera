@@ -2,6 +2,7 @@
 #include "Adafruit_PyCamera.h"
 
 Adafruit_PyCamera pycamera;
+framesize_t validSizes[] = {FRAMESIZE_QQVGA, FRAMESIZE_QVGA, FRAMESIZE_HVGA, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_HD, FRAMESIZE_SXGA, FRAMESIZE_UXGA, FRAMESIZE_QXGA, FRAMESIZE_QSXGA};
 
 
 void setup() {
@@ -34,21 +35,21 @@ void loop() {
   
   // once the frame is captured we can draw ontot he framebuffer
   if (pycamera.justPressed(AWEXP_SD_DET)) {
-    Serial.println("SD Card removed");
+    Serial.println(F("SD Card removed"));
     pycamera.endSD();
     pycamera.fb->setCursor(0, 32);
     pycamera.fb->setTextSize(2);
     pycamera.fb->setTextColor(pycamera.color565(255, 0, 0));
-    pycamera.fb->print("SD Card removed");
+    pycamera.fb->print(F("SD Card removed"));
     delay(200);
   }
   if (pycamera.justReleased(AWEXP_SD_DET)) {
-    Serial.println("SD Card inserted!");
+    Serial.println(F("SD Card inserted!"));
     pycamera.initSD();
     pycamera.fb->setCursor(0, 32);
     pycamera.fb->setTextSize(2);
     pycamera.fb->setTextColor(pycamera.color565(255, 0, 0));
-    pycamera.fb->print("SD Card inserted");
+    pycamera.fb->print(F("SD Card inserted"));
     delay(200);
   }
 
@@ -67,6 +68,50 @@ void loop() {
   pycamera.fb->print(" V");
 
 
+  // print the camera frame size
+  pycamera.fb->setCursor(0, 200);
+  pycamera.fb->setTextSize(2);
+  pycamera.fb->setTextColor(pycamera.color565(255, 255, 255));
+  pycamera.fb->print("Size:");
+  switch (pycamera.photoSize) {
+    case FRAMESIZE_QQVGA:
+      pycamera.fb->print("160x120");
+      break;
+    case FRAMESIZE_QVGA:
+      pycamera.fb->print("320x240");
+      break;
+    case FRAMESIZE_HVGA:
+      pycamera.fb->print("480x320");
+      break;
+    case FRAMESIZE_VGA:
+      pycamera.fb->print("640x480");
+      break;
+    case FRAMESIZE_SVGA:
+      pycamera.fb->print("800x600");
+      break;
+    case FRAMESIZE_XGA:
+      pycamera.fb->print("1024x768");
+      break;
+    case FRAMESIZE_HD:
+      pycamera.fb->print("1280x720");
+      break;
+    case FRAMESIZE_SXGA:
+      pycamera.fb->print("1280x1024");
+      break;
+    case FRAMESIZE_UXGA:
+      pycamera.fb->print("1600x1200");
+      break;
+    case FRAMESIZE_QXGA:
+      pycamera.fb->print("2048x1536");
+      break;
+    case FRAMESIZE_QSXGA:
+      pycamera.fb->print("2560x1920");
+      break;
+    default:
+      pycamera.fb->print("Unknown");
+      break;
+  }
+
   float x_ms2, y_ms2, z_ms2;
   if (pycamera.readAccelData(&x_ms2, &y_ms2, &z_ms2)) {
     //Serial.printf("X=%0.2f, Y=%0.2f, Z=%0.2f\n\r", x_ms2, y_ms2, z_ms2);
@@ -80,21 +125,36 @@ void loop() {
   
   pycamera.blitFrame();
 
+  if (pycamera.justPressed(AWEXP_BUTTON_UP)) {
+    Serial.println("Up!");
+    for (int i = 0; i < sizeof(validSizes) / sizeof(framesize_t) - 1; ++i) {
+        if (pycamera.photoSize == validSizes[i]) {
+            pycamera.photoSize = validSizes[i + 1];
+            break;
+        }
+    }
+  }
+  if (pycamera.justPressed(AWEXP_BUTTON_DOWN)) {
+    Serial.println("Down!");
+    for (int i = sizeof(validSizes) / sizeof(framesize_t) - 1; i > 0; --i) {
+        if (pycamera.photoSize == validSizes[i]) {
+            pycamera.photoSize = validSizes[i - 1];
+            break;
+        }
+    }
+  }
+
   if (pycamera.justPressed(SHUTTER_BUTTON)) {
     Serial.println("Snap!");
-    if (pycamera.takePhoto("IMAGE")) {
+    if (pycamera.takePhoto("IMAGE", pycamera.photoSize)) {
       pycamera.fb->setCursor(120, 100);
       pycamera.fb->setTextSize(2);
       pycamera.fb->setTextColor(pycamera.color565(255, 255, 255));
       pycamera.fb->print("Snap!");
       pycamera.speaker_tone(100, 50);  // tone1 - B5
-      pycamera.blitFrame();
+      //pycamera.blitFrame();
     }
-    //pycamera.speaker_tone(988, 100);  // tone1 - B5
-    //pycamera.speaker_tone(1319, 200); // tone2 - E6
   }
 
-
-  delay(10);
-  
+  delay(100); 
 }

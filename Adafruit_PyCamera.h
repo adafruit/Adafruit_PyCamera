@@ -34,7 +34,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   bool begin(void);
 
-  bool initCamera(bool hwreset, framesize_t framesize);
+  bool initCamera(bool hwreset);
   bool initDisplay(void);
   bool initExpander(void);
   bool initAccel(void);
@@ -44,7 +44,8 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 
   bool captureFrame(void);
   void blitFrame(void);
-  bool takePhoto(char *filename);
+  bool takePhoto(const char *filename_base, framesize_t framesize);
+  bool setFramesize(framesize_t framesize);
 
   void speaker_tone(uint32_t tonefreq, uint32_t tonetime);
 
@@ -76,6 +77,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   uint32_t last_button_state = 0xFFFFFFFF;
   uint32_t button_state = 0xFFFFFFFF;
 
+  framesize_t photoSize = FRAMESIZE_VGA;
   camera_config_t camera_config;
 };
 
