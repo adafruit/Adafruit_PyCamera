@@ -163,8 +163,10 @@ bool Adafruit_PyCamera::initCamera(bool hwreset, framesize_t framesize) {
   camera_config.pin_pclk = PCLK_GPIO_NUM;
   camera_config.pin_vsync = VSYNC_GPIO_NUM;
   camera_config.pin_href = HREF_GPIO_NUM;
-  camera_config.pin_sccb_sda = SIOD_GPIO_NUM;
-  camera_config.pin_sccb_scl = SIOC_GPIO_NUM;
+  camera_config.pin_sccb_sda = -1;
+  camera_config.pin_sccb_scl = -1;
+  // use the built in I2C port 
+  camera_config.sccb_i2c_port = 0; // use the 'first' i2c port
   camera_config.pin_pwdn = PWDN_GPIO_NUM;
   camera_config.pin_reset = RESET_GPIO_NUM;
   camera_config.xclk_freq_hz = 20000000;
