@@ -41,8 +41,8 @@ bool Adafruit_PyCamera::begin() {
   
   I2Cscan();
 
-  if (! initExpander()) return false;
   if (! initDisplay()) return false;
+  if (! initExpander()) return false;
   if (! initCamera(true)) return false;  
   if (! setFramesize(FRAMESIZE_240X240));
   if (SDdetected() && ! initSD()) return false;
@@ -104,17 +104,15 @@ void Adafruit_PyCamera::endSD() {
 
 bool Adafruit_PyCamera::initExpander(void) {
   Serial.print("Init AW9523...");
-  if (!aw.begin(0x5B)) {
+  if (!aw.begin(0x58)) {
     Serial.println("AW9523 not found!");
     return false;
   }
   Serial.println("OK!");
   aw.pinMode(AWEXP_SPKR_SD, OUTPUT);
   aw.digitalWrite(AWEXP_SPKR_SD, LOW); // start muted
-  aw.pinMode(AWEXP_BACKLIGHT, OUTPUT);
-  aw.digitalWrite(AWEXP_BACKLIGHT, LOW); // start dark
   aw.pinMode(AWEXP_SD_PWR, OUTPUT);
-  aw.digitalWrite(AWEXP_SD_PWR, LOW); // start on 
+  aw.digitalWrite(AWEXP_SD_PWR, LOW); // start SD powered
   aw.pinMode(AWEXP_SD_DET, INPUT);
   return true;
 }
@@ -122,13 +120,13 @@ bool Adafruit_PyCamera::initExpander(void) {
 bool Adafruit_PyCamera::initDisplay(void) {
   Serial.print("Init display....");
 
-  aw.pinMode(AWEXP_BACKLIGHT, OUTPUT);
-  aw.digitalWrite(AWEXP_BACKLIGHT, LOW); // Backlight off
+  pinMode(TFT_BACKLIGHT, OUTPUT);
+  digitalWrite(TFT_BACKLIGHT, LOW); 
   init(240, 240);   // Initialize ST7789 screen
   setRotation(1);
   fillScreen(ST77XX_GREEN);
 
-  digitalWrite(AWEXP_BACKLIGHT, LOW); // Backlight on
+  digitalWrite(TFT_BACKLIGHT, HIGH);
   Serial.println("done!");
   return true;
 }
@@ -156,16 +154,7 @@ bool Adafruit_PyCamera::initCamera(bool hwreset) {
   Wire.begin();
 
   if (hwreset) {
-    // perform a hardware reset
-    aw.pinMode(AWEXP_CAM_PWDN, OUTPUT);
-    aw.pinMode(AWEXP_CAM_RST, OUTPUT);
-    aw.digitalWrite(AWEXP_CAM_RST, LOW);
-    aw.digitalWrite(AWEXP_CAM_PWDN, HIGH);
-    delay(10);
-    aw.digitalWrite(AWEXP_CAM_PWDN, LOW);
-    delay(10);
-    aw.digitalWrite(AWEXP_CAM_RST, HIGH);
-    delay(10);
+
   }
 
   camera_config.ledc_channel = LEDC_CHANNEL_0;
@@ -201,7 +190,7 @@ bool Adafruit_PyCamera::initCamera(bool hwreset) {
    */
   camera_config.pixel_format = PIXFORMAT_JPEG;
   camera_config.frame_size = FRAMESIZE_UXGA; // start with biggest possible image supported!!! do not change this
-  camera_config.jpeg_quality = 10;
+  camera_config.jpeg_quality = 4;
   camera_config.fb_count = 2;
 
   Serial.print("Initializing...");
@@ -217,6 +206,7 @@ bool Adafruit_PyCamera::initCamera(bool hwreset) {
   camera = esp_camera_sensor_get();
   Serial.printf("Found camera PID %04X\n\r", camera->id.PID);
   camera->set_hmirror(camera, 1);
+  camera->set_vflip(camera, 1);
 
   return true;
 }
