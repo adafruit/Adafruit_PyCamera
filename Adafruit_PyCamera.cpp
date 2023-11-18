@@ -36,6 +36,14 @@ bool Adafruit_PyCamera::begin() {
   pixel.setBrightness(50);
   setNeopixel(0x0);
 
+  // Setup and turn off Neopixel Ring
+  ring.setPin(A1);
+  ring.updateType(NEO_GRBW + NEO_KHZ800);
+  ring.updateLength(8);
+  ring.begin();
+  ring.setBrightness(255);
+  setRing(0x0);
+
   // boot button is also shutter
   pinMode(SHUTTER_BUTTON, INPUT_PULLUP);
   
@@ -45,7 +53,7 @@ bool Adafruit_PyCamera::begin() {
   if (! initExpander()) return false;
   if (! initCamera(true)) return false;  
   if (! setFramesize(FRAMESIZE_240X240));
-  if (SDdetected() && ! initSD()) return false;
+  if (SDdetected()) initSD();
   if (! initAccel()) return false;
 
   fb = new PyCameraFB(240, 240);
@@ -66,14 +74,32 @@ bool Adafruit_PyCamera::initSD(void) {
   Serial.println("SD card inserted, trying to init");
   
   // power reset
-  //aw.pinMode(AWEXP_SD_PWR, OUTPUT);
-  //aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off  
-  //delay(10);
-  //aw.digitalWrite(AWEXP_SD_PWR, LOW); // turn on
+  aw.pinMode(AWEXP_SD_PWR, OUTPUT);
+  aw.digitalWrite(AWEXP_SD_PWR, HIGH); // turn off
 
-  if (!sd.begin(SD_CHIP_SELECT, SD_SCK_MHZ(4))) {
+  pinMode(SD_CS, OUTPUT);
+  digitalWrite(SD_CS, LOW);
+
+  Serial.println("De-initing SPI");
+  SPI.end();
+  pinMode(SCK, OUTPUT);
+  digitalWrite(SCK, LOW);
+  pinMode(MOSI, OUTPUT);
+  digitalWrite(MISO, LOW);
+  pinMode(MISO, OUTPUT);
+  digitalWrite(MISO, LOW);
+
+  delay(50);
+
+  Serial.println("Re-init SPI");
+  digitalWrite(SD_CS, HIGH);
+  SPI.begin();
+  aw.digitalWrite(AWEXP_SD_PWR, LOW); // turn on
+  delay(100);
+
+  if (!sd.begin(SD_CS, SD_SCK_MHZ(4))) {
     if (sd.card()->errorCode()) {
-      Serial.printf("SD card init failure with code %x data %d\n", 
+      Serial.printf("SD card init failure with code 0x%x data %d\n", 
                     sd.card()->errorCode(), sd.card()->errorData());
     }
     else if (sd.vol()->fatType() == 0) {
@@ -81,6 +107,7 @@ bool Adafruit_PyCamera::initSD(void) {
     } else {
       Serial.println("SD begin failed, can't determine error type");
     }
+    aw.digitalWrite(AWEXP_SD_PWR, HIGH); // turn off power
     return false;
   }
 
@@ -205,7 +232,7 @@ bool Adafruit_PyCamera::initCamera(bool hwreset) {
 
   camera = esp_camera_sensor_get();
   Serial.printf("Found camera PID %04X\n\r", camera->id.PID);
-  camera->set_hmirror(camera, 1);
+  camera->set_hmirror(camera, 0);
   camera->set_vflip(camera, 1);
 
   return true;
@@ -259,7 +286,9 @@ bool Adafruit_PyCamera::takePhoto(const char *filename_base, framesize_t framesi
 
   if (!sd.card() || (sd.card()->cardSize() == 0)) {
     Serial.println("No SD card found");
-    return false;
+    // try to initialize?
+    if (! initSD())
+      return false;
   }
 
   // we're probably going to succeed in saving the file so we should
@@ -478,6 +507,11 @@ void Adafruit_PyCamera::I2Cscan(void) {
 void Adafruit_PyCamera::setNeopixel(uint32_t c) {
   pixel.fill(c);
   pixel.show(); // Initialize all pixels to 'off'
+}
+
+void Adafruit_PyCamera::setRing(uint32_t c) {
+  ring.fill(c);
+  ring.show(); // Initialize all pixels to 'off'
 }
 
 /**************************************************************************/

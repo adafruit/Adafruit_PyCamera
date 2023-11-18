@@ -60,6 +60,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   bool readAccelData(float *x, float *y, float *z);
 
   void setNeopixel(uint32_t c);
+  void setRing(uint32_t c);
   uint32_t Wheel(byte WheelPos);
 
   uint32_t timestamp(void);
@@ -70,6 +71,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   PyCameraFB *fb = NULL;
 
   Adafruit_NeoPixel pixel;
+  Adafruit_NeoPixel ring;
   Adafruit_AW9523 aw;
   Adafruit_I2CDevice *lis_dev = NULL;
 
