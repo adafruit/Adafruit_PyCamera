@@ -52,7 +52,7 @@ bool Adafruit_PyCamera::begin() {
   if (! initDisplay()) return false;
   if (! initExpander()) return false;
   if (! initCamera(true)) return false;  
-  if (! setFramesize(FRAMESIZE_240X240));
+  if (! setFramesize(FRAMESIZE_240X240)) return false;
   if (SDdetected()) initSD();
   if (! initAccel()) return false;
 
@@ -100,7 +100,7 @@ bool Adafruit_PyCamera::initSD(void) {
   if (!sd.begin(SD_CS, SD_SCK_MHZ(4))) {
     if (sd.card()->errorCode()) {
       Serial.printf("SD card init failure with code 0x%x data %d\n", 
-                    sd.card()->errorCode(), sd.card()->errorData());
+                    sd.card()->errorCode(), (int)sd.card()->errorData());
     }
     else if (sd.vol()->fatType() == 0) {
       Serial.println("Can't find a valid FAT16/FAT32 partition.");
@@ -117,7 +117,7 @@ bool Adafruit_PyCamera::initSD(void) {
     Serial.println("Can't determine the card size");
   } else {
     uint32_t sizeMB = 0.000512 * size + 0.5;
-    Serial.printf("Card size: %d MB FAT%d\n", sizeMB, sd.vol()->fatType());
+    Serial.printf("Card size: %d MB FAT%d\n", (int)sizeMB, sd.vol()->fatType());
   }
   Serial.println("Files found (date time size name):");
   sd.ls(LS_R | LS_DATE | LS_SIZE);
@@ -276,8 +276,7 @@ void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
 bool Adafruit_PyCamera::takePhoto(const char *filename_base, framesize_t framesize) {
   bool ok = false;
   File file;
-  esp_err_t res = ESP_OK;
-
+  //esp_err_t res = ESP_OK;
 
   if (!SDdetected()) {
     Serial.println("No SD card inserted");
@@ -308,7 +307,7 @@ bool Adafruit_PyCamera::takePhoto(const char *filename_base, framesize_t framesi
   Serial.printf("\t\t\tSnapped 1st %d bytes (%d x %d) in %d ms\n\r", 
                 frame->len, 
                 frame->width, frame->height, 
-                timestamp());
+                (int)timestamp());
   esp_camera_fb_return(frame);
     
   // capture and toss second internal buffer
@@ -322,7 +321,7 @@ bool Adafruit_PyCamera::takePhoto(const char *filename_base, framesize_t framesi
   Serial.printf("\t\t\tSnapped 2nd %d bytes (%d x %d) in %d ms\n\r", 
                 frame->len, 
                 frame->width, frame->height, 
-                timestamp());
+                (int)timestamp());
   char fullfilename[64];
   for (int inc=0; inc <= 1000; inc++) {
     if (inc == 1000) return false;
@@ -358,12 +357,12 @@ uint32_t Adafruit_PyCamera::timestamp(void) {
 }
 
 void Adafruit_PyCamera::timestampPrint(const char *msg) {
-  Serial.printf("%s: %d ms elapsed\n\r", msg, timestamp());
+  Serial.printf("%s: %d ms elapsed\n\r", msg, (int)timestamp());
 }
 
 bool Adafruit_PyCamera::captureFrame(void) {
   //Serial.println("Capturing...");
-  esp_err_t res = ESP_OK;
+  //esp_err_t res = ESP_OK;
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO
   int64_t fr_start = esp_timer_get_time();
 #endif
@@ -389,7 +388,7 @@ bool Adafruit_PyCamera::captureFrame(void) {
       fb->setFB(jpeg_buffer);
     }
     uint16_t w = 0, h = 0, scale = 1;
-    int xoff, yoff;
+    int xoff=0, yoff=0;
     TJpgDec.getJpgSize(&w, &h, frame->buf, frame->len);
     if (w <= 240 || h <= 240) {
       scale = 1;
