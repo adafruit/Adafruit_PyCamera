@@ -1,9 +1,9 @@
-#include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
-#include <Adafruit_NeoPixel.h>
-#include <Adafruit_AW9523.h>
-#include <SdFat.h>
-#include "esp_camera.h"
 #include "TJpg_Decoder.h"
+#include "esp_camera.h"
+#include <Adafruit_AW9523.h>
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
+#include <SdFat.h>
 
 #ifndef TAG
 #define TAG "PYCAM"
@@ -11,25 +11,27 @@
 
 #define AW_DOWN_MASK (1UL << AWEXP_BUTTON_DOWN)
 #define AW_LEFT_MASK (1UL << AWEXP_BUTTON_LEFT)
-#define AW_UP_MASK  (1UL << AWEXP_BUTTON_UP)
-#define AW_RIGHT_MASK  (1UL << AWEXP_BUTTON_RIGHT)
-#define AW_OK_MASK  (1UL << AWEXP_BUTTON_OK)
-#define AW_SEL_MASK  (1UL << AWEXP_BUTTON_SEL)
+#define AW_UP_MASK (1UL << AWEXP_BUTTON_UP)
+#define AW_RIGHT_MASK (1UL << AWEXP_BUTTON_RIGHT)
+#define AW_OK_MASK (1UL << AWEXP_BUTTON_OK)
+#define AW_SEL_MASK (1UL << AWEXP_BUTTON_SEL)
 #define AW_CARDDET_MASK (1UL << AWEXP_SD_DET)
-#define AW_INPUTS_MASK (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_OK_MASK | AW_SEL_MASK | AW_CARDDET_MASK)
+#define AW_INPUTS_MASK                                                         \
+  (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_OK_MASK |     \
+   AW_SEL_MASK | AW_CARDDET_MASK)
 
 class PyCameraFB : public GFXcanvas16 {
- public:
- PyCameraFB(uint16_t w, uint16_t h) : GFXcanvas16(w,h) { free(buffer); buffer = NULL; };
-  
-  void setFB(uint16_t *fb) {
-    buffer = fb;
-  }
+public:
+  PyCameraFB(uint16_t w, uint16_t h) : GFXcanvas16(w, h) {
+    free(buffer);
+    buffer = NULL;
+  };
+
+  void setFB(uint16_t *fb) { buffer = fb; }
 };
 
-
 class Adafruit_PyCamera : public Adafruit_ST7789 {
- public:
+public:
   Adafruit_PyCamera();
 
   bool begin(void);
@@ -64,7 +66,7 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   uint32_t Wheel(byte WheelPos);
 
   uint32_t timestamp(void);
-  void timestampPrint(const char *msg) ;
+  void timestampPrint(const char *msg);
 
   sensor_t *camera;
   camera_fb_t *frame = NULL;
@@ -85,7 +87,6 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
   camera_config_t camera_config;
 };
 
-
 #define LIS3DH_REG_STATUS1 0x07
 #define LIS3DH_REG_OUTADC1_L 0x08 /**< 1-axis acceleration data. Low value */
 #define LIS3DH_REG_OUTADC1_H 0x09 /**< 1-axis acceleration data. High value */
@@ -93,8 +94,9 @@ class Adafruit_PyCamera : public Adafruit_ST7789 {
 #define LIS3DH_REG_OUTADC2_H 0x0B /**< 2-axis acceleration data. High value */
 #define LIS3DH_REG_OUTADC3_L 0x0C /**< 3-axis acceleration data. Low value */
 #define LIS3DH_REG_OUTADC3_H 0x0D /**< 3-axis acceleration data. High value */
-#define LIS3DH_REG_INTCOUNT  0x0E /**< INT_COUNTER register [IC7, IC6, IC5, IC4, IC3, IC2, IC1, IC0] */
-#define LIS3DH_REG_WHOAMI  0x0F
+#define LIS3DH_REG_INTCOUNT                                                    \
+  0x0E /**< INT_COUNTER register [IC7, IC6, IC5, IC4, IC3, IC2, IC1, IC0] */
+#define LIS3DH_REG_WHOAMI 0x0F
 #define LIS3DH_REG_TEMPCFG 0x1F
 #define LIS3DH_REG_CTRL1 0x20
 #define LIS3DH_REG_CTRL2 0x21
