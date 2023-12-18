@@ -1,4 +1,4 @@
-# Adafruit PyCamera Library [![Build Status](https://github.com/adafruit/Adafruit_PyCamera/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/Adafruit_PyCamera/actions)
+# Adafruit PyCamera Library [![Build Status](https://github.com/adafruit/Adafruit_PyCamera/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/Adafruit_PyCamera/actions) [![Documentation](https://github.com/adafruit/ci-arduino/blob/master/assets/doxygen_badge.svg)](http://adafruit.github.io/Adafruit_PyCamera/html/index.html)
 
 This is a library for the Adafruit MEMENTO:
   * [https://www.adafruit.com/products/5420](https://www.adafruit.com/product/5420)
