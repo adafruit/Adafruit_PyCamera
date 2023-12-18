@@ -20,6 +20,8 @@
   (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_OK_MASK |     \
    AW_SEL_MASK | AW_CARDDET_MASK)
 
+#define TFT_BACKLIGHT 45
+
 class PyCameraFB : public GFXcanvas16 {
 public:
   PyCameraFB(uint16_t w, uint16_t h) : GFXcanvas16(w, h) {
