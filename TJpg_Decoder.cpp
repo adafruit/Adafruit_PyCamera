@@ -232,8 +232,7 @@ int TJpg_Decoder::jd_output(JDEC *jdec, void *bitmap, JRECT *jrect) {
     /**************************************************************************/
     // Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS
     // files
-    JRESULT
-    TJpg_Decoder::drawJpg(int32_t x, int32_t y, const char *pFilename) {
+    JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const char *pFilename) {
 
 #if defined(ARDUINO_ARCH_ESP8266) || defined(ESP32)
 #if defined(TJPGD_LOAD_SD_LIBRARY)
