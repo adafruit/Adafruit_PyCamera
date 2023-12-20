@@ -13,55 +13,33 @@ https://github.com/Bodmer/TJpg_Decoder
 // header)
 TJpg_Decoder TJpgDec;
 
-/**************************************************************************/
-/**
- * @brief Constructor for the TJpg_Decoder class.
- * 
- * @details Initializes a new instance of the TJpg_Decoder class. 
- *          Sets up a pointer to this class instance for static functions.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           TJpg_Decoder
+** Description:             Constructor
+***************************************************************************************/
 TJpg_Decoder::TJpg_Decoder() {
   // Setup a pointer to this class for static functions
   thisPtr = this;
 }
 
-/**************************************************************************/
-/**
- * @brief Destructor for the TJpg_Decoder class.
- * 
- * @details Releases any resources or memory allocated by the TJpg_Decoder instance.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           ~TJpg_Decoder
+** Description:             Destructor
+***************************************************************************************/
 TJpg_Decoder::~TJpg_Decoder() {
   // Bye
 }
 
-/**************************************************************************/
-/**
- * @brief Sets the byte swapping option for the JPEG decoder.
- * 
- * @details This function configures whether the bytes in the decoded JPEG image
- *          should be swapped. This is useful for different hardware configurations
- *          and image rendering methods.
- * 
- * @param swapBytes Boolean flag to enable or disable byte swapping.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           setJpgScale
+** Description:             Set the reduction scale factor (1, 2, 4 or 8)
+***************************************************************************************/
 void TJpg_Decoder::setSwapBytes(bool swapBytes) { _swap = swapBytes; }
 
-/**************************************************************************/
-/**
- * @brief Sets the JPEG image scale factor.
- * 
- * @details This function configures the scaling factor for the JPEG decoding process.
- *          It allows the image to be reduced by a factor of 1, 2, 4, or 8. This can
- *          be useful for handling large images or for faster rendering with reduced
- *          resolution.
- * 
- * @param scaleFactor The scale factor for the JPEG image (1, 2, 4, or 8).
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           setJpgScale
+** Description:             Set the reduction scale factor (1, 2, 4 or 8)
+***************************************************************************************/
 void TJpg_Decoder::setJpgScale(uint8_t scaleFactor) {
   switch (scaleFactor) {
   case 1:
@@ -81,41 +59,19 @@ void TJpg_Decoder::setJpgScale(uint8_t scaleFactor) {
   }
 }
 
-/**************************************************************************/
-/**
- * @brief Sets the callback function for rendering decoded JPEG blocks.
- * 
- * @details This function sets a user-defined callback function that is called
- *          during the JPEG decoding process. The callback function is responsible
- *          for rendering the decoded image blocks to the display or other output
- *          devices. This allows for custom handling of the JPEG decoding process.
- * 
- * @param sketchCallback The callback function to be used for rendering decoded blocks.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           setCallback
+** Description:             Set the sketch callback function to render decoded
+*blocks
+***************************************************************************************/
 void TJpg_Decoder::setCallback(SketchCallback sketchCallback) {
   tft_output = sketchCallback;
 }
 
-/**************************************************************************/
-/**
- * @brief Called by tjpgd.c to retrieve more data for JPEG decoding.
- * 
- * @details This function is a callback used by the JPEG decoding library (tjpgd.c)
- *          to fetch more data for the decoding process. It handles data retrieval
- *          from various sources including arrays, SPIFFS, and SD files. The function
- *          ensures that the end of the data source is not exceeded and copies the
- *          required number of bytes into the provided buffer.
- * 
- * @param jdec Pointer to the JDEC structure, representing the state of the JPEG
- *             decompression process.
- * @param buf Pointer to the buffer where the fetched data should be stored. If null,
- *            no data is copied.
- * @param len The number of bytes to fetch.
- * 
- * @return The actual number of bytes fetched.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           jd_input (declared static)
+** Description:             Called by tjpgd.c to get more data
+***************************************************************************************/
 unsigned int TJpg_Decoder::jd_input(JDEC *jdec, uint8_t *buf,
                                     unsigned int len) {
   TJpg_Decoder *thisPtr = TJpgDec.thisPtr;
@@ -177,25 +133,10 @@ unsigned int TJpg_Decoder::jd_input(JDEC *jdec, uint8_t *buf,
   return len;
 }
 
-/**************************************************************************/
-/**
- * @brief Called by tjpgd.c with an image block for rendering.
- * 
- * @details This function is a callback used by the JPEG decoding library (tjpgd.c)
- *          to pass decoded image blocks for rendering. It may be a complete or
- *          partial Minimum Coded Unit (MCU). The function calculates the position
- *          and dimensions of the image block and passes these parameters along with
- *          the image data to a user-defined rendering function.
- * 
- * @param jdec Pointer to the JDEC structure, representing the state of the JPEG
- *             decompression process.
- * @param bitmap Pointer to the image block data.
- * @param jrect Pointer to the JRECT structure defining the position and size of
- *              the image block.
- * 
- * @return The return value from the user-defined rendering function.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           jd_output (declared static)
+** Description:             Called by tjpgd.c with an image block for rendering
+***************************************************************************************/
 // Pass image block back to the sketch for rendering, may be a complete or
 // partial MCU
 int TJpg_Decoder::jd_output(JDEC *jdec, void *bitmap, JRECT *jrect) {
@@ -217,16 +158,10 @@ int TJpg_Decoder::jd_output(JDEC *jdec, void *bitmap, JRECT *jrect) {
 
 #if defined(TJPGD_LOAD_SD_LIBRARY) || defined(TJPGD_LOAD_FFS)
 
-**************************************************************************/
-/**
- * @brief Draw a named jpg file at x,y (name in char array).
- * @details Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS files.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param pFilename Pointer to the character array containing the file name.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawJpg
+** Description:             Draw a named jpg file at x,y (name in char array)
+***************************************************************************************/
 // Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS
 // files
 JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const char *pFilename) {
@@ -245,16 +180,10 @@ JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const char *pFilename) {
   return JDR_INP;
 }
 
-/**************************************************************************/
-/**
- * @brief Draw a named jpg file at x,y (name in String).
- * @details Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS files.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param pFilename String containing the file name.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawJpg
+** Description:             Draw a named jpg file at x,y (name in String)
+***************************************************************************************/
 // Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS
 // files
 JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const String &pFilename) {
@@ -273,16 +202,11 @@ JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const String &pFilename) {
   return JDR_INP;
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg file (name in char array).
- * @details Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS files.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param pFilename Pointer to the character array containing the file name.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getJpgSize
+** Description:             Get width and height of a jpg file (name in char
+*array)
+***************************************************************************************/
 // Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS
 // files
 JRESULT TJpg_Decoder::getJpgSize(uint16_t *w, uint16_t *h,
@@ -302,16 +226,10 @@ JRESULT TJpg_Decoder::getJpgSize(uint16_t *w, uint16_t *h,
   return JDR_INP;
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg file (name in String).
- * @details Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS files.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param pFilename String containing the file name.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getJpgSize
+** Description:             Get width and height of a jpg file (name in String)
+***************************************************************************************/
 // Generic file call for SD or SPIFFS, uses leading / to distinguish SPIFFS
 // files
 JRESULT TJpg_Decoder::getJpgSize(uint16_t *w, uint16_t *h,
@@ -335,16 +253,10 @@ JRESULT TJpg_Decoder::getJpgSize(uint16_t *w, uint16_t *h,
 
 #ifdef TJPGD_LOAD_FFS
 
-/**************************************************************************/
-/**
- * @brief Draw a named jpg file at x,y (name in char array) from SPIFFS or LittleFS.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param pFilename Pointer to the character array containing the file name.
- * @param fs Filesystem reference (SPIFFS or LittleFS).
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawFsJpg
+** Description:             Draw a named jpg file at x,y (name in char array)
+***************************************************************************************/
 // Call specific to SPIFFS
 JRESULT TJpg_Decoder::drawFsJpg(int32_t x, int32_t y, const char *pFilename,
                                 fs::FS &fs) {
@@ -357,16 +269,10 @@ JRESULT TJpg_Decoder::drawFsJpg(int32_t x, int32_t y, const char *pFilename,
   return drawFsJpg(x, y, fs.open(pFilename, "r"));
 }
 
-/**************************************************************************/
-/**
- * @brief Draw a named jpg file at x,y (name in String) from SPIFFS or LittleFS.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param pFilename String containing the file name.
- * @param fs Filesystem reference (SPIFFS or LittleFS).
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawFsJpg
+** Description:             Draw a named jpg file at x,y (name in String)
+***************************************************************************************/
 JRESULT TJpg_Decoder::drawFsJpg(int32_t x, int32_t y, const String &pFilename,
                                 fs::FS &fs) {
   // Check if file exists
@@ -377,15 +283,10 @@ JRESULT TJpg_Decoder::drawFsJpg(int32_t x, int32_t y, const String &pFilename,
   return drawFsJpg(x, y, fs.open(pFilename, "r"));
 }
 
-/**************************************************************************/
-/**
- * @brief Draw a jpg with opened file handle at x,y.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param inFile Opened file handle to the jpg file.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawFsJpg
+** Description:             Draw a jpg with opened file handle at x,y
+***************************************************************************************/
 JRESULT TJpg_Decoder::drawFsJpg(int32_t x, int32_t y, fs::File inFile) {
   JDEC jdec;
   JRESULT jresult = JDR_OK;
@@ -413,16 +314,11 @@ JRESULT TJpg_Decoder::drawFsJpg(int32_t x, int32_t y, fs::File inFile) {
   return jresult;
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in SPIFFS or LittleFS (name in char array).
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param pFilename Pointer to the character array containing the file name.
- * @param fs Filesystem reference (SPIFFS or LittleFS).
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getFsJpgSize
+** Description:             Get width and height of a jpg saved in SPIFFS or
+*LittleFS
+***************************************************************************************/
 // Call specific to SPIFFS
 JRESULT TJpg_Decoder::getFsJpgSize(uint16_t *w, uint16_t *h,
                                    const char *pFilename, fs::FS &fs) {
@@ -435,16 +331,11 @@ JRESULT TJpg_Decoder::getFsJpgSize(uint16_t *w, uint16_t *h,
   return getFsJpgSize(w, h, fs.open(pFilename, "r"));
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in SPIFFS or LittleFS (name in String).
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param pFilename String containing the file name.
- * @param fs Filesystem reference (SPIFFS or LittleFS).
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getFsJpgSize
+** Description:             Get width and height of a jpg saved in SPIFFS or
+*LittleFS
+***************************************************************************************/
 JRESULT TJpg_Decoder::getFsJpgSize(uint16_t *w, uint16_t *h,
                                    const String &pFilename, fs::FS &fs) {
   // Check if file exists
@@ -456,16 +347,10 @@ JRESULT TJpg_Decoder::getFsJpgSize(uint16_t *w, uint16_t *h,
   return getFsJpgSize(w, h, fs.open(pFilename, "r"));
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in SPIFFS.
- * @details Retrieves the dimensions of a JPEG image stored in SPIFFS.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param inFile Opened file handle to the jpg file.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getFsJpgSize
+** Description:             Get width and height of a jpg saved in SPIFFS
+***************************************************************************************/
 JRESULT TJpg_Decoder::getFsJpgSize(uint16_t *w, uint16_t *h, fs::File inFile) {
   JDEC jdec;
   JRESULT jresult = JDR_OK;
@@ -495,16 +380,10 @@ JRESULT TJpg_Decoder::getFsJpgSize(uint16_t *w, uint16_t *h, fs::File inFile) {
 
 #if defined(TJPGD_LOAD_SD_LIBRARY)
 
-/**************************************************************************/
-/**
- * @brief Draw a named jpg SD file at x,y (name in char array).
- * @details Draws a JPEG image from an SD card at specified coordinates.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param pFilename Pointer to the character array containing the file name.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawSdJpg
+** Description:             Draw a named jpg SD file at x,y (name in char array)
+***************************************************************************************/
 // Call specific to SD
 JRESULT TJpg_Decoder::drawSdJpg(int32_t x, int32_t y, const char *pFilename) {
 
@@ -517,16 +396,10 @@ JRESULT TJpg_Decoder::drawSdJpg(int32_t x, int32_t y, const char *pFilename) {
   return drawSdJpg(x, y, SD.open(pFilename, FILE_READ));
 }
 
-/**************************************************************************/
-/**
- * @brief Draw a named jpg SD file at x,y (name in String).
- * @details Draws a JPEG image from an SD card at specified coordinates.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param pFilename String containing the file name.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawSdJpg
+** Description:             Draw a named jpg SD file at x,y (name in String)
+***************************************************************************************/
 JRESULT TJpg_Decoder::drawSdJpg(int32_t x, int32_t y, const String &pFilename) {
 
   // Check if file exists
@@ -538,16 +411,10 @@ JRESULT TJpg_Decoder::drawSdJpg(int32_t x, int32_t y, const String &pFilename) {
   return drawSdJpg(x, y, SD.open(pFilename, FILE_READ));
 }
 
-/**************************************************************************/
-/**
- * @brief Draw a jpg with opened SD file handle at x,y.
- * @details Renders a JPEG image from an opened SD file at specified coordinates.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param inFile Opened file handle to the jpg file.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawSdJpg
+** Description:             Draw a jpg with opened SD file handle at x,y
+***************************************************************************************/
 JRESULT TJpg_Decoder::drawSdJpg(int32_t x, int32_t y, File inFile) {
   JDEC jdec;
   JRESULT jresult = JDR_OK;
@@ -574,16 +441,10 @@ JRESULT TJpg_Decoder::drawSdJpg(int32_t x, int32_t y, File inFile) {
   return jresult;
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in SPIFFS.
- * @details Retrieves the dimensions of a JPEG image stored in SPIFFS.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param pFilename Pointer to the character array containing the file name.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getSdJpgSize
+** Description:             Get width and height of a jpg saved in  SPIFFS
+***************************************************************************************/
 // Call specific to SD
 JRESULT TJpg_Decoder::getSdJpgSize(uint16_t *w, uint16_t *h,
                                    const char *pFilename) {
@@ -597,16 +458,10 @@ JRESULT TJpg_Decoder::getSdJpgSize(uint16_t *w, uint16_t *h,
   return getSdJpgSize(w, h, SD.open(pFilename, FILE_READ));
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in SPIFFS.
- * @details Retrieves the dimensions of a JPEG image stored in SPIFFS.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param pFilename String containing the file name.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getSdJpgSize
+** Description:             Get width and height of a jpg saved in  SPIFFS
+***************************************************************************************/
 JRESULT TJpg_Decoder::getSdJpgSize(uint16_t *w, uint16_t *h,
                                    const String &pFilename) {
 
@@ -619,16 +474,10 @@ JRESULT TJpg_Decoder::getSdJpgSize(uint16_t *w, uint16_t *h,
   return getSdJpgSize(w, h, SD.open(pFilename, FILE_READ));
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in SPIFFS.
- * @details Retrieves the dimensions of a JPEG image stored in SPIFFS.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param inFile Opened file handle to the jpg file.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getSdJpgSize
+** Description:             Get width and height of a jpg saved in SPIFFS
+***************************************************************************************/
 JRESULT TJpg_Decoder::getSdJpgSize(uint16_t *w, uint16_t *h, File inFile) {
   JDEC jdec;
   JRESULT jresult = JDR_OK;
@@ -656,17 +505,10 @@ JRESULT TJpg_Decoder::getSdJpgSize(uint16_t *w, uint16_t *h, File inFile) {
 
 #endif
 
-/**************************************************************************/
-/**
- * @brief Draw a jpg saved in a FLASH memory array.
- * @details Renders a JPEG image stored in a FLASH memory array at specified coordinates.
- * @param x X-coordinate where the image will be drawn.
- * @param y Y-coordinate where the image will be drawn.
- * @param jpeg_data Pointer to the JPEG data in FLASH memory.
- * @param data_size Size of the JPEG data in bytes.
- * @return JRESULT status of the drawing operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           drawJpg
+** Description:             Draw a jpg saved in a FLASH memory array
+***************************************************************************************/
 JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const uint8_t jpeg_data[],
                               uint32_t data_size) {
   JDEC jdec;
@@ -693,17 +535,11 @@ JRESULT TJpg_Decoder::drawJpg(int32_t x, int32_t y, const uint8_t jpeg_data[],
   return jresult;
 }
 
-/**************************************************************************/
-/**
- * @brief Get width and height of a jpg saved in a FLASH memory array.
- * @details Retrieves the dimensions of a JPEG image stored in a FLASH memory array.
- * @param w Pointer to store the width of the image.
- * @param h Pointer to store the height of the image.
- * @param jpeg_data Pointer to the JPEG data in FLASH memory.
- * @param data_size Size of the JPEG data in bytes.
- * @return JRESULT status of the size retrieval operation.
- */
-/**************************************************************************/
+/***************************************************************************************
+** Function name:           getJpgSize
+** Description:             Get width and height of a jpg saved in a FLASH
+*memory array
+***************************************************************************************/
 JRESULT TJpg_Decoder::getJpgSize(uint16_t *w, uint16_t *h,
                                  const uint8_t jpeg_data[],
                                  uint32_t data_size) {

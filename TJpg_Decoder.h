@@ -28,35 +28,26 @@ enum { TJPG_ARRAY = 0, TJPG_FS_FILE, TJPG_SD_FILE };
 typedef bool (*SketchCallback)(int16_t x, int16_t y, uint16_t w, uint16_t h,
                                uint16_t *data);
 
-/**************************************************************************/
-/**
- * @class TJpg_Decoder
- * @brief JPEG Decoder for Arduino using TJpgDec.
- * 
- * Incorporates the TJpgDec library into an Arduino library for JPEG decoding.
- * Supports loading JPEG files from various sources like SD card, SPIFFS, and memory arrays.
- */
-/**************************************************************************/
 class TJpg_Decoder {
 
 private:
 #if defined(TJPGD_LOAD_SD_LIBRARY)
-  File jpgSdFile; ///< File handle for JPEG files on SD card.
+  File jpgSdFile;
 #endif
 
 #ifdef TJPGD_LOAD_FFS
-  fs::File jpgFile; ///< File handle for JPEG files in SPIFFS.
+  fs::File jpgFile;
 #endif
 
 public:
-  TJpg_Decoder(); ///< Constructor for TJpg_Decoder.
-  ~TJpg_Decoder(); ///< Destructor for TJpg_Decoder.
+  TJpg_Decoder();
+  ~TJpg_Decoder();
 
-  static int jd_output(JDEC *jdec, void *bitmap, JRECT *jrect); ///< Static callback for outputting JPEG blocks.
-  static unsigned int jd_input(JDEC *jdec, uint8_t *buf, unsigned int len); ///< Static callback for inputting JPEG data.
+  static int jd_output(JDEC *jdec, void *bitmap, JRECT *jrect);
+  static unsigned int jd_input(JDEC *jdec, uint8_t *buf, unsigned int len);
 
-  void setJpgScale(uint8_t scale); ///< Set the JPEG scaling factor.
-  void setCallback(SketchCallback sketchCallback); ///< Set the callback function for rendering decoded blocks.
+  void setJpgScale(uint8_t scale);
+  void setCallback(SketchCallback sketchCallback);
 
 #if defined(TJPGD_LOAD_SD_LIBRARY) || defined(TJPGD_LOAD_FFS)
   JRESULT drawJpg(int32_t x, int32_t y, const char *pFilename);
@@ -97,29 +88,27 @@ public:
 
   void setSwapBytes(bool swap);
 
-  bool _swap = false; ///< Swap byte order flag.
+  bool _swap = false;
 
-  const uint8_t *array_data = nullptr; ///< Pointer to JPEG data in memory array.
-  uint32_t array_index = 0; ///< Current index in the memory array.
-  uint32_t array_size = 0; ///< Size of the memory array.
-  
-  /*! \cond DOXYGEN_SHOULD_SKIP_THIS */
-  uint8_t workspace[TJPGD_WORKSPACE_SIZE] __attribute__((aligned(4))); ///< Workspace for TJpgDec, aligned to 32-bit boundary.
-  /*! \endcond */
+  const uint8_t *array_data = nullptr;
+  uint32_t array_index = 0;
+  uint32_t array_size = 0;
 
-  uint8_t jpg_source = 0; ///< Source of the JPEG data.
+  // Must align workspace to a 32 bit boundary
+  uint8_t workspace[TJPGD_WORKSPACE_SIZE] __attribute__((aligned(4)));
 
-  int16_t jpeg_x = 0; ///< X-coordinate for rendering JPEG.
-  int16_t jpeg_y = 0; ///< Y-coordinate for rendering JPEG.
+  uint8_t jpg_source = 0;
 
-  uint8_t jpgScale = 0; ///< JPEG scaling factor.
+  int16_t jpeg_x = 0;
+  int16_t jpeg_y = 0;
 
-  SketchCallback tft_output = nullptr; ///< Callback function for rendering JPEG blocks.
+  uint8_t jpgScale = 0;
 
-  TJpg_Decoder *thisPtr = nullptr; ///< Pointer to this instance, used in static functions.
+  SketchCallback tft_output = nullptr;
+
+  TJpg_Decoder *thisPtr = nullptr;
 };
 
-
-extern TJpg_Decoder TJpgDec; ///< Global instance of TJpg_Decoder.
+extern TJpg_Decoder TJpgDec;
 
 #endif // TJpg_Decoder_H
