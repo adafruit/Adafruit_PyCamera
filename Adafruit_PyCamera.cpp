@@ -2,6 +2,24 @@
 
 static uint16_t *jpeg_buffer = NULL;
 
+/**************************************************************************/
+/**
+ * @brief Outputs the buffer for JPEG decoding.
+ *
+ * @param x The x-coordinate where the bitmap starts.
+ * @param y The y-coordinate where the bitmap starts.
+ * @param w The width of the bitmap.
+ * @param h The height of the bitmap.
+ * @param bitmap Pointer to the bitmap data.
+ *
+ * @return true if the buffer is successfully outputted, false otherwise.
+ *
+ * @details This function is used as a callback for JPEG decoding. It outputs
+ * the decoded bitmap to a specified location in the `jpeg_buffer`. The function
+ * checks for the validity of `jpeg_buffer` and ensures that the drawing
+ * operations stay within the bounds of the buffer.
+ */
+/**************************************************************************/
 bool buffer_output(int16_t x, int16_t y, uint16_t w, uint16_t h,
                    uint16_t *bitmap) {
   if (!jpeg_buffer)
@@ -23,9 +41,29 @@ bool buffer_output(int16_t x, int16_t y, uint16_t w, uint16_t h,
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Construct a new Adafruit_PyCamera object.
+ *
+ * @details Initializes the display with specified TFT parameters.
+ *
+ */
+/**************************************************************************/
 Adafruit_PyCamera::Adafruit_PyCamera(void)
     : Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RESET) {}
 
+/**************************************************************************/
+/**
+ * @brief Initializes the PyCamera.
+ *
+ * @details Sets up the speaker, Neopixel, Neopixel Ring, shutter button, and
+ * performs I2C scan. Initializes the display, expander, camera, frame size, SD
+ * card (if detected), and accelerometer. Creates a new framebuffer for the
+ * camera.
+ *
+ * @return true if initialization is successful, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::begin() {
   Serial.println("Init PyCamera obj");
   // Setup and turn off speaker
@@ -72,6 +110,18 @@ bool Adafruit_PyCamera::begin() {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Initializes the SD card.
+ *
+ * @details Checks for SD card presence and attempts initialization. Performs a
+ * power reset, reinitializes SPI for SD card communication, and checks for
+ * errors during SD card initialization. Also lists files on the SD card if
+ * initialization is successful.
+ *
+ * @return true if SD card is successfully initialized, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::initSD(void) {
 
   if (!SDdetected()) {
@@ -131,11 +181,28 @@ bool Adafruit_PyCamera::initSD(void) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Ends the SD card session.
+ *
+ * @details Powers off the SD card to end the session.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::endSD() {
   // aw.pinMode(AWEXP_SD_PWR, OUTPUT);
   // aw.digitalWrite(AWEXP_SD_PWR, HIGH); // start off
 }
 
+/**************************************************************************/
+/**
+ * @brief Initializes the AW9523 I/O expander.
+ *
+ * @details Sets up the AW9523 expander, configuring speaker, SD power, and SD
+ * detection pins.
+ *
+ * @return true if the expander is successfully initialized, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::initExpander(void) {
   Serial.print("Init AW9523...");
   if (!aw.begin(0x58)) {
@@ -151,6 +218,18 @@ bool Adafruit_PyCamera::initExpander(void) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Initializes the display.
+ *
+ * @details This method sets up the display for the PyCamera. It starts by
+ * initializing the backlight control, then initializes the ST7789 screen with
+ * the specified dimensions and rotation. Finally, it fills the screen with a
+ * green color and turns on the backlight.
+ *
+ * @return true if the display is successfully initialized, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::initDisplay(void) {
   Serial.print("Init display....");
 
@@ -165,6 +244,18 @@ bool Adafruit_PyCamera::initDisplay(void) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Sets the frame size for the camera.
+ *
+ * @details Configures the camera to use the specified frame size. If the frame
+ * size cannot be set, it outputs an error message with the error code.
+ *
+ * @param framesize The desired frame size to set for the camera.
+ * @return true if the frame size is successfully set, false if there is an
+ * error.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::setFramesize(framesize_t framesize) {
   uint8_t ret = camera->set_framesize(camera, framesize);
   if (ret != 0) {
@@ -174,6 +265,18 @@ bool Adafruit_PyCamera::setFramesize(framesize_t framesize) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Sets a special effect on the camera.
+ *
+ * @details Applies a specified special effect to the camera's output. If the
+ * effect cannot be set, it outputs an error message with the error code.
+ *
+ * @param effect The special effect identifier to apply.
+ * @return true if the special effect is successfully set, false if there is an
+ * error.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::setSpecialEffect(uint8_t effect) {
   uint8_t ret = camera->set_special_effect(camera, effect);
   if (ret != 0) {
@@ -183,6 +286,23 @@ bool Adafruit_PyCamera::setSpecialEffect(uint8_t effect) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Initializes the camera module.
+ *
+ * @details Configures and initializes the camera with specified settings.
+ * It sets up various camera parameters like LEDC channel and timer, pin
+ * configuration, XCLK frequency, frame buffer location, pixel format, frame
+ * size, and JPEG quality. It also handles the hardware reset if specified.
+ * After configuration, it initializes the camera and checks for errors. If
+ * successful, it retrieves the camera sensor information and sets horizontal
+ * mirror and vertical flip settings.
+ *
+ * @param hwreset Flag to determine if a hardware reset is needed.
+ * @return true if the camera is successfully initialized, false if there is an
+ * error.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::initCamera(bool hwreset) {
   Serial.print("Config camera...");
   Wire.begin();
@@ -246,14 +366,45 @@ bool Adafruit_PyCamera::initCamera(bool hwreset) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Reads the battery voltage.
+ *
+ * @details Measures the battery voltage through the BATT_MONITOR pin.
+ * The reading is scaled to account for the voltage divider and ADC resolution.
+ *
+ * @return The battery voltage in volts.
+ */
+/**************************************************************************/
 float Adafruit_PyCamera::readBatteryVoltage(void) {
   return analogRead(BATT_MONITOR) * 2.0 * 3.3 / 4096;
 }
 
+/**************************************************************************/
+/**
+ * @brief Checks if an SD card is detected.
+ *
+ * @details Reads the state of the SD card detection pin using the AW9523
+ * expander. A high state indicates that an SD card is present.
+ *
+ * @return true if an SD card is detected, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::SDdetected(void) {
   return aw.digitalRead(AWEXP_SD_DET);
 }
 
+/**************************************************************************/
+/**
+ * @brief Reads the current state of the buttons.
+ *
+ * @details Retrieves the state of all buttons connected to the AW9523 expander
+ * and the shutter button. The state is updated and stored in the button_state
+ * variable. The previous state is stored in last_button_state.
+ *
+ * @return The current state of the buttons as a 32-bit unsigned integer.
+ */
+/**************************************************************************/
 uint32_t Adafruit_PyCamera::readButtons(void) {
   last_button_state = button_state;
   button_state = aw.inputGPIO() & AW_INPUTS_MASK;
@@ -261,16 +412,53 @@ uint32_t Adafruit_PyCamera::readButtons(void) {
   return button_state;
 }
 
+/**************************************************************************/
+/**
+ * @brief Checks if a button was just pressed.
+ *
+ * @details Determines if the specified button has transitioned from a
+ * non-pressed to a pressed state since the last read. This function is useful
+ * for detecting button press events.
+ *
+ * @param button_pin The pin number of the button to check.
+ * @return true if the button was just pressed, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::justPressed(uint8_t button_pin) {
   return ((last_button_state & (1UL << button_pin)) && // was not pressed before
           !(button_state & (1UL << button_pin)));      // and is pressed now
 }
 
+/**************************************************************************/
+/**
+ * @brief Checks if a button was just released.
+ *
+ * @details Determines if the specified button has transitioned from a pressed
+ * to a non-pressed state since the last read. This function is useful for
+ * detecting button release events.
+ *
+ * @param button_pin The pin number of the button to check.
+ * @return true if the button was just released, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::justReleased(uint8_t button_pin) {
   return (!(last_button_state & (1UL << button_pin)) && // was pressed before
           (button_state & (1UL << button_pin)));        // and isnt pressed now
 }
 
+/**************************************************************************/
+/**
+ * @brief Plays a tone through the speaker.
+ *
+ * @details Generates a tone of a specified frequency and duration through the
+ * speaker. It unmutes the speaker before playing the tone and mutes it again
+ * after the tone is played. The function uses a blocking delay for the duration
+ * of the tone.
+ *
+ * @param tonefreq The frequency of the tone in Hertz.
+ * @param tonetime The duration of the tone in milliseconds.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
   aw.digitalWrite(AWEXP_SPKR_SD, HIGH); // un-mute
   tone(SPEAKER, tonefreq, tonetime);    // tone1 - B5
@@ -278,6 +466,23 @@ void Adafruit_PyCamera::speaker_tone(uint32_t tonefreq, uint32_t tonetime) {
   aw.digitalWrite(AWEXP_SPKR_SD, LOW); // mute
 }
 
+/**************************************************************************/
+/**
+ * @brief Captures a photo and saves it to an SD card.
+ *
+ * @details This function captures a photo with the camera at the specified
+ * resolution, and saves it to the SD card with a filename based on the provided
+ * base name. It handles SD card detection, initialization, and file creation.
+ * The function also manages camera frame buffer acquisition and release, and
+ * sets the camera resolution.
+ *
+ * @param filename_base Base name for the file to be saved. The function appends
+ * a numerical suffix to create a unique filename.
+ * @param framesize The resolution at which the photo should be captured.
+ * @return true if the photo is successfully captured and saved, false
+ * otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::takePhoto(const char *filename_base,
                                   framesize_t framesize) {
   bool ok = false;
@@ -354,16 +559,54 @@ bool Adafruit_PyCamera::takePhoto(const char *filename_base,
   return ok;
 }
 
+/**************************************************************************/
+/**
+ * @brief Returns the time elapsed since the last call to this function.
+ *
+ * @details This function calculates the time difference (in milliseconds)
+ * between the current time and the last time this function was called. It
+ * updates the internal timestamp to the current time at each call.
+ *
+ * @return The time elapsed (in milliseconds) since the last call to this
+ * function.
+ */
+/**************************************************************************/
 uint32_t Adafruit_PyCamera::timestamp(void) {
   uint32_t delta = millis() - _timestamp;
   _timestamp = millis();
   return delta;
 }
 
+/**************************************************************************/
+/**
+ * @brief Prints a timestamped message to the Serial output.
+ *
+ * @details This function prints a message to the Serial output, prefixed with a
+ * timestamp. The timestamp represents the time elapsed in milliseconds since
+ * the last call to `timestamp()` function. It is useful for debugging and
+ * performance measurement.
+ *
+ * @param msg The message to be printed along with the timestamp.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::timestampPrint(const char *msg) {
   Serial.printf("%s: %d ms elapsed\n\r", msg, (int)timestamp());
 }
 
+/**************************************************************************/
+/**
+ * @brief Captures a frame from the camera and processes it.
+ *
+ * @details This function captures a frame from the camera and processes it
+ * based on the current pixel format setting. It handles both JPEG and RGB565
+ * formats. For JPEG, it scales and draws the image onto a framebuffer. For
+ * RGB565, it flips the endians of the frame buffer. This function is essential
+ * for capturing and displaying camera frames.
+ *
+ * @return bool Returns true if the frame was successfully captured and
+ * processed, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::captureFrame(void) {
   // Serial.println("Capturing...");
   // esp_err_t res = ESP_OK;
@@ -425,12 +668,35 @@ bool Adafruit_PyCamera::captureFrame(void) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Blits the current frame buffer to the display.
+ *
+ * @details This function draws the current frame buffer onto the display at the
+ * specified coordinates. It is used to update the display with the latest
+ * camera frame. After drawing, it returns the frame buffer to the camera for
+ * reuse.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::blitFrame(void) {
   drawRGBBitmap(0, 0, (uint16_t *)fb->getBuffer(), 240, 240);
 
   esp_camera_fb_return(frame);
 }
 
+/**************************************************************************/
+/**
+ * @brief Initializes the accelerometer.
+ *
+ * @details This function initializes the accelerometer by setting up the I2C
+ * device, checking the chip ID, and configuring the control registers for
+ * normal mode, data rate, resolution, and range. It ensures that the
+ * accelerometer is ready for data reading.
+ *
+ * @return bool Returns true if the accelerometer is successfully initialized,
+ * false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::initAccel(void) {
   lis_dev = new Adafruit_I2CDevice(0x19, &Wire);
   if (!lis_dev->begin()) {
@@ -459,6 +725,21 @@ bool Adafruit_PyCamera::initAccel(void) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Reads accelerometer data.
+ *
+ * @details This function reads the X, Y, and Z acceleration data from the
+ * accelerometer. It sets up the register address for auto-increment to read
+ * consecutive data registers and then reads the 6 bytes of data corresponding
+ * to the X, Y, and Z axes.
+ *
+ * @param[out] x Pointer to store the X-axis acceleration data.
+ * @param[out] y Pointer to store the Y-axis acceleration data.
+ * @param[out] z Pointer to store the Z-axis acceleration data.
+ * @return bool Returns true if the data is successfully read, false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::readAccelData(int16_t *x, int16_t *y, int16_t *z) {
   uint8_t register_address = LIS3DH_REG_OUT_X_L;
   register_address |= 0x80; // set [7] for auto-increment
@@ -480,6 +761,22 @@ bool Adafruit_PyCamera::readAccelData(int16_t *x, int16_t *y, int16_t *z) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Reads accelerometer data and converts it to g-force values.
+ *
+ * @details This function reads the raw accelerometer data for X, Y, and Z axes
+ * using readAccelData() and then converts these values to g-force. The
+ * conversion factor depends on the accelerometer's sensitivity setting (here
+ * assumed for 16G range).
+ *
+ * @param[out] x_g Pointer to store the X-axis acceleration in g-force.
+ * @param[out] y_g Pointer to store the Y-axis acceleration in g-force.
+ * @param[out] z_g Pointer to store the Z-axis acceleration in g-force.
+ * @return bool Returns true if the data is successfully read and converted,
+ * false otherwise.
+ */
+/**************************************************************************/
 bool Adafruit_PyCamera::readAccelData(float *x_g, float *y_g, float *z_g) {
   int16_t x, y, z;
   if (!readAccelData(&x, &y, &z))
@@ -492,6 +789,16 @@ bool Adafruit_PyCamera::readAccelData(float *x_g, float *y_g, float *z_g) {
   return true;
 }
 
+/**************************************************************************/
+/**
+ * @brief Scans the I2C bus and prints the addresses of all connected devices.
+ *
+ * @details This function iterates through all possible I2C addresses (0x00 to
+ * 0x7F) and attempts to initiate a transmission to each. If a device
+ * acknowledges the transmission, its address is printed to the Serial output.
+ * This is useful for debugging and identifying connected I2C devices.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::I2Cscan(void) {
   Wire.begin();
   Serial.print("I2C Scan: ");
@@ -507,11 +814,34 @@ void Adafruit_PyCamera::I2Cscan(void) {
   Serial.println();
 }
 
+/**************************************************************************/
+/**
+ * @brief Sets the color of the Neopixel.
+ *
+ * @param c The color to set the Neopixel to, in 32-bit RGB format.
+ *
+ * @details This function sets the color of the Neopixel LED. It uses the `fill`
+ * method of the Adafruit_NeoPixel class to set all pixels to the specified
+ * color and then calls `show` to update the LED with the new color.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::setNeopixel(uint32_t c) {
   pixel.fill(c);
   pixel.show(); // Initialize all pixels to 'off'
 }
 
+/**************************************************************************/
+/**
+ * @brief Sets the color of the Neopixel Ring.
+ *
+ * @param c The color to set the Neopixel Ring to, in 32-bit RGB format.
+ *
+ * @details This function sets the color of the Neopixel Ring. It uses the
+ * `fill` method of the Adafruit_NeoPixel class to set all pixels in the ring to
+ * the specified color and then calls `show` to update the ring with the new
+ * color.
+ */
+/**************************************************************************/
 void Adafruit_PyCamera::setRing(uint32_t c) {
   ring.fill(c);
   ring.show(); // Initialize all pixels to 'off'

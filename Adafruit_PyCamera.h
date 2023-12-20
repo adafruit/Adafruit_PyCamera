@@ -20,20 +20,54 @@
   (AW_DOWN_MASK | AW_LEFT_MASK | AW_UP_MASK | AW_RIGHT_MASK | AW_OK_MASK |     \
    AW_SEL_MASK | AW_CARDDET_MASK)
 
-#define TFT_BACKLIGHT 45
-
+/**************************************************************************/
+/**
+ * @brief Framebuffer class for PyCamera.
+ *
+ * @details This class extends GFXcanvas16 to provide a framebuffer for the
+ * PyCamera.
+ */
+/**************************************************************************/
 class PyCameraFB : public GFXcanvas16 {
 public:
+  /**************************************************************************/
+  /**
+   * @brief Construct a new PyCameraFB object.
+   *
+   * @param w Width of the framebuffer.
+   * @param h Height of the framebuffer.
+   */
+  /**************************************************************************/
   PyCameraFB(uint16_t w, uint16_t h) : GFXcanvas16(w, h) {
     free(buffer);
     buffer = NULL;
   };
 
+  /**************************************************************************/
+  /**
+   * @brief Set the framebuffer.
+   *
+   * @param fb Pointer to the framebuffer data.
+   */
+  /**************************************************************************/
   void setFB(uint16_t *fb) { buffer = fb; }
 };
 
+/**************************************************************************/
+/**
+ * @brief Main class for Adafruit PyCamera.
+ *
+ * @details This class extends Adafruit_ST7789 and provides functionalities
+ * for operating the PyCamera.
+ */
+/**************************************************************************/
 class Adafruit_PyCamera : public Adafruit_ST7789 {
 public:
+  /**************************************************************************/
+  /**
+   * @brief Construct a new Adafruit_PyCamera object.
+   */
+  /**************************************************************************/
   Adafruit_PyCamera();
 
   bool begin(void);
@@ -69,23 +103,36 @@ public:
 
   uint32_t timestamp(void);
   void timestampPrint(const char *msg);
-
+  /** @brief Pointer to the camera sensor structure. */
   sensor_t *camera;
+  /** @brief Pointer to the camera frame buffer. */
   camera_fb_t *frame = NULL;
+  /** @brief Pointer to the PyCamera framebuffer object. */
   PyCameraFB *fb = NULL;
 
+  /** @brief Adafruit NeoPixel object for single pixel control. */
   Adafruit_NeoPixel pixel;
+  /** @brief Adafruit NeoPixel object for ring control. */
   Adafruit_NeoPixel ring;
+  /** @brief Adafruit AW9523 object for I/O expander functionality. */
   Adafruit_AW9523 aw;
+  /** @brief Pointer to the I2C device for accelerometer. */
   Adafruit_I2CDevice *lis_dev = NULL;
 
+  /** @brief SdFat object for SD card operations. */
   SdFat sd;
+  /** @brief Timestamp for internal timing operations. */
   uint32_t _timestamp;
+  /** @brief Last state of the buttons. */
   uint32_t last_button_state = 0xFFFFFFFF;
+  /** @brief Current state of the buttons. */
   uint32_t button_state = 0xFFFFFFFF;
 
+  /** @brief Current photo size setting. */
   framesize_t photoSize = FRAMESIZE_VGA;
+  /** @brief Current special effect setting. */
   int8_t specialEffect = 0;
+  /** @brief Configuration structure for the camera. */
   camera_config_t camera_config;
 };
 
