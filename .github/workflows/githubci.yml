@@ -22,13 +22,16 @@ jobs:
     - name: test platforms
       run: python3 ci/build_platform.py "pycamera_s3"
     
+    - name: list
+      run: |
+            ls
+            ls examples/*/build/
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: ${{ github.event.repository.name }}.${{ github.sha }}
         path: |
-            build/*.hex
-            build/*.bin
             build/*.uf2
 
     - name: clang
