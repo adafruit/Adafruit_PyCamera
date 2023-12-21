@@ -30,10 +30,9 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ github.event.repository.name }}.${{ github.sha }}
+        name: example_uf2s
         path: |
-            examples/*/build/*.uf2
-            examples/*/build/*
+            examples/*/build/*/*.uf2
 
     - name: clang
       run: python3 ci/run-clang-format.py -e "ci/*" -e "bin/*" -r .
