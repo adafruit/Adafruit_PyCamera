@@ -21,7 +21,16 @@ jobs:
 
     - name: test platforms
       run: python3 ci/build_platform.py "pycamera_s3"
-    
+
+    - name: clang
+      run: python3 ci/run-clang-format.py -e "ci/*" -e "bin/*" -r .
+
+    - name: doxygen
+      env:
+        GH_REPO_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
+        PRETTYNAME : "Adafruit PyCamera Library"
+      run: bash ci/doxy_gen_and_deploy.sh
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
@@ -34,12 +43,3 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: build/*.uf2
-
-    - name: clang
-      run: python3 ci/run-clang-format.py -e "ci/*" -e "bin/*" -r .
-
-    - name: doxygen
-      env:
-        GH_REPO_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
-        PRETTYNAME : "Adafruit PyCamera Library"
-      run: bash ci/doxy_gen_and_deploy.sh
