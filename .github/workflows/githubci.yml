@@ -37,9 +37,3 @@ jobs:
         name: examples_uf2s
         path: |
             build/*.uf2
-    
-    - name: Add Release Assets
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: build/*.uf2
