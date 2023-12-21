@@ -27,7 +27,9 @@ jobs:
       with:
         name: ${{ github.event.repository.name }}.${{ github.sha }}
         path: |
-            build/espressif.esp32.adafruit_camera_esp32s3/*.uf2
+            build/*.hex
+            build/*.bin
+            build/*.uf2
 
     - name: clang
       run: python3 ci/run-clang-format.py -e "ci/*" -e "bin/*" -r .
