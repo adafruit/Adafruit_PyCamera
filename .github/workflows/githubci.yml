@@ -21,6 +21,13 @@ jobs:
 
     - name: test platforms
       run: python3 ci/build_platform.py "pycamera_s3"
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ github.event.repository.name }}.${{ github.sha }}
+        path: |
+            build/*.uf2
 
     - name: clang
       run: python3 ci/run-clang-format.py -e "ci/*" -e "bin/*" -r .
@@ -30,10 +37,3 @@ jobs:
         GH_REPO_TOKEN: ${{ secrets.GH_REPO_TOKEN }}
         PRETTYNAME : "Adafruit PyCamera Library"
       run: bash ci/doxy_gen_and_deploy.sh
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ github.event.repository.name }}.${{ github.sha }}
-        path: |
-            build/*.uf2
