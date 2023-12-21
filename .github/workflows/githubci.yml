@@ -32,7 +32,8 @@ jobs:
       with:
         name: ${{ github.event.repository.name }}.${{ github.sha }}
         path: |
-            build/*.uf2
+            examples/*/build/*.uf2
+            examples/*/build/*
 
     - name: clang
       run: python3 ci/run-clang-format.py -e "ci/*" -e "bin/*" -r .
