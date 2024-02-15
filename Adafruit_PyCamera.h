@@ -82,6 +82,7 @@ public:
 
   bool captureFrame(void);
   void blitFrame(void);
+  void refresh(void);
   bool takePhoto(const char *filename_base, framesize_t framesize);
   bool setFramesize(framesize_t framesize);
   bool setSpecialEffect(uint8_t effect);
