@@ -684,10 +684,16 @@ void Adafruit_PyCamera::blitFrame(void) {
   esp_camera_fb_return(frame);
 }
 
-void Adafruit_PyCamera::refresh(void) {
-
-  esp_camera_fb_return(frame);
-}
+/**************************************************************************/
+/**
+ * @brief Blits the current frame buffer to the display.
+ *
+ * @details This function returns the frame buffer to the camera for
+ * reuse. Used when you are drawing your own bitmap to the framebuffer
+ * in user code.
+ */
+/**************************************************************************/
+void Adafruit_PyCamera::refresh(void) { esp_camera_fb_return(frame); }
 
 /**************************************************************************/
 /**
