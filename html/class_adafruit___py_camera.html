@@ -115,6 +115,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a0108a0ad3ed2205ad3756119395e227d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___py_camera.html#a0108a0ad3ed2205ad3756119395e227d">blitFrame</a> (void)</td></tr>
 <tr class="memdesc:a0108a0ad3ed2205ad3756119395e227d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Blits the current frame buffer to the display.  <a href="#a0108a0ad3ed2205ad3756119395e227d">More...</a><br /></td></tr>
 <tr class="separator:a0108a0ad3ed2205ad3756119395e227d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac4e7c68209d65ecccf2618715a91c630"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___py_camera.html#ac4e7c68209d65ecccf2618715a91c630">refresh</a> (void)</td></tr>
+<tr class="memdesc:ac4e7c68209d65ecccf2618715a91c630"><td class="mdescLeft">&#160;</td><td class="mdescRight">Blits the current frame buffer to the display.  <a href="#ac4e7c68209d65ecccf2618715a91c630">More...</a><br /></td></tr>
+<tr class="separator:ac4e7c68209d65ecccf2618715a91c630"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1548f9ba9f95c57705a32a648ec7a02c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___py_camera.html#a1548f9ba9f95c57705a32a648ec7a02c">takePhoto</a> (const char *filename_base, framesize_t framesize)</td></tr>
 <tr class="memdesc:a1548f9ba9f95c57705a32a648ec7a02c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Captures a photo and saves it to an SD card.  <a href="#a1548f9ba9f95c57705a32a648ec7a02c">More...</a><br /></td></tr>
 <tr class="separator:a1548f9ba9f95c57705a32a648ec7a02c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -469,6 +472,27 @@ camera_config_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 
 <p>Blits the current frame buffer to the display. </p>
 <p>This function draws the current frame buffer onto the display at the specified coordinates. It is used to update the display with the latest camera frame. After drawing, it returns the frame buffer to the camera for reuse. </p>
+
+</div>
+</div>
+<a id="ac4e7c68209d65ecccf2618715a91c630"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac4e7c68209d65ecccf2618715a91c630">&#9670;&nbsp;</a></span>refresh()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void Adafruit_PyCamera::refresh </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Blits the current frame buffer to the display. </p>
+<p>This function returns the frame buffer to the camera for reuse. Used when you are drawing your own bitmap to the framebuffer in user code. </p>
 
 </div>
 </div>
