@@ -343,8 +343,8 @@ bool Adafruit_PyCamera::initCamera(bool hwreset) {
    */
   camera_config.pixel_format = PIXFORMAT_JPEG;
   camera_config.frame_size =
-      FRAMESIZE_UXGA; // start with biggest possible image supported!!! do not
-                      // change this
+      FRAMESIZE_QSXGA; // start with biggest possible image supported!!! do not
+                       // change this
   camera_config.jpeg_quality = 4;
   camera_config.fb_count = 2;
 
